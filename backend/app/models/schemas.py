@@ -17,6 +17,7 @@ class LinkCheckRequest(BaseModel):
 class YouTubeRequest(BaseModel):
     channel_handle: str
     user_id: Optional[str] = None
+    max_videos: Optional[int] = 5
 
 
 class LinkResult(BaseModel):

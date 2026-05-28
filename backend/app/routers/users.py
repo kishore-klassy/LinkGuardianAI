@@ -22,7 +22,7 @@ async def get_me(authorization: str = Header(None)):
     user_id = await get_user_id(authorization)
     supabase = get_supabase()
     r = supabase.table("users").select("*").eq("id", user_id).maybe_single().execute()
-    if not r.data:
+    if not r or not r.data:
         return {
             "id": user_id,
             "email": None,
@@ -47,7 +47,7 @@ async def get_stats(authorization: str = Header(None)):
     total_loss = sum(s.get("estimated_loss", 0) for s in scans)
 
     user_r = supabase.table("users").select("plan").eq("id", user_id).maybe_single().execute()
-    plan = (user_r.data or {}).get("plan", "free")
+    plan = (user_r.data or {}).get("plan", "free") if user_r else "free"
 
     sites_r = supabase.table("monitored_sites").select("id").eq("user_id", user_id).execute()
     sites_count = len(sites_r.data or [])
@@ -147,7 +147,7 @@ async def get_settings(authorization: str = Header(None)):
     user_id = await get_user_id(authorization)
     supabase = get_supabase()
     r = supabase.table("user_settings").select("*").eq("user_id", user_id).maybe_single().execute()
-    if not r.data:
+    if not r or not r.data:
         return {
             "email_alerts": True,
             "weekly_report": False,

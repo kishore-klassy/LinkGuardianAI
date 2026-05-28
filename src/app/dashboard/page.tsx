@@ -906,7 +906,7 @@ export default function Dashboard() {
       const token = await getToken();
       const endpoint = inputMode === "youtube" ? "/api/check-youtube-channel" : "/api/check-links";
       const body = inputMode === "youtube"
-        ? JSON.stringify({ channel_handle: scanInput, max_videos: videoCount })
+        ? JSON.stringify({ channel_handle: scanInput, max_videos: videoCount, user_id: user?.id })
         : JSON.stringify({ links: [{ url: scanInput, anchor_text: scanInput, context: "" }], page_url: scanInput, user_id: user?.id });
       const res = await fetch(`${API}${endpoint}`, {
         method: "POST",
