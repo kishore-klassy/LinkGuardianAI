@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <rect width="48" height="48" rx="10" fill="url(#g)"/>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="48" y2="48"><stop offset="0%" stop-color="#bf5af2"/><stop offset="100%" stop-color="#0a84ff"/></linearGradient></defs>
+  <text x="24" y="34" text-anchor="middle" font-size="26">🛡</text>
+</svg>

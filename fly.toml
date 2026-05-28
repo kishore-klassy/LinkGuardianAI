@@ -1,0 +1,40 @@
+# ExpireLinkX Backend — Fly.io Configuration
+app = "expirelinkx-api"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  LOG_LEVEL = "INFO"
+  FRONTEND_URL = "https://expirelinkx.com"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8000
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    path = "/health"
+    method = "GET"
+
+  [[services.concurrency]]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 50
+
+  [[services.tcp_queues]]
+    backlog = 1024
+    max_connections = 1000
+
+[[statics]]
+  guest_path = "/app/static"
+  url_prefix = "/static"
