@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/lib/components/ThemeToggle";
 
 interface UserProfile { id: string; email?: string; full_name?: string; plan: string; }
 interface DashboardStats { total_scans: number; total_links_checked: number; total_broken_found: number; estimated_monthly_loss_inr: number; plan: string; monitored_sites_count: number; last_scan_at: string | null; }
-interface ScanRecord { id: string; created_at: string; page_url: string; total_links: number; broken_count: number; ok_count: number; redirect_count: number; unverifiable_count?: number; estimated_loss: number; }
+interface ScanRecord { id: string; created_at: string; page_url: string; total_links: number; broken_count: number; ok_count: number; redirect_count: number; unverifiable_count?: number; estimated_loss: number; broken_links_data?: any[]; ok_links_data?: any[]; unverifiable_links_data?: any[]; redirect_links_data?: any[]; }
 interface MonitoredSite { id: string; url: string; name?: string; site_type: string; last_scanned_at: string | null; is_active: boolean; created_at: string; }
 interface UserSettings { email_alerts: boolean; weekly_report: boolean; whatsapp_alerts: boolean; }
 interface LinkResult { url: string; anchor_text: string; context: string; status: string; status_code: number | null; final_url: string | null; error: string | null; ai_suggestion: string | null; estimated_loss: string | null; }
@@ -829,6 +829,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("home");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [scans, setScans] = useState<ScanRecord[]>([]);
+  const [selectedHistoryScan, setSelectedHistoryScan] = useState<ScanRecord | null>(null);
   const [scanTotal, setScanTotal] = useState(0);
   const [sites, setSites] = useState<MonitoredSite[]>([]);
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -1398,43 +1399,75 @@ export default function Dashboard() {
           {/* ════ HISTORY ════ */}
           {activeTab === "history" && (
             <div className="animate-fadeIn">
-              <div
-                className="rounded-2xl border overflow-hidden"
-                style={{ background: "var(--bg-card)", border: "1.5px solid var(--border-card)" }}
-              >
-                {scans.length === 0 ? (
-                  <EmptyState icon={S.history(false)} title="No Scans Yet" desc="Initiated scan histories will appear here." />
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="table-premium">
-                      <thead>
-                        <tr>
-                          {["Target Page", "Total Links", "OK", "Broken", "Redirect", "Est. Loss", "Date"].map(h => (
-                            <th key={h}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {scans.map(s => (
-                          <tr key={s.id}>
-                            <td className="font-mono text-[11px] truncate max-w-[200px]" title={s.page_url}>{truncate(s.page_url, 40)}</td>
-                            <td className="font-nums">{s.total_links}</td>
-                            <td className="font-nums" style={{ color: "var(--accent-green)" }}>{s.ok_count}</td>
-                            <td>
-                              <span className="font-nums font-bold" style={{ color: s.broken_count > 0 ? "var(--accent-red)" : "var(--accent-green)" }}>
-                                {s.broken_count}
-                              </span>
-                            </td>
-                            <td className="font-nums" style={{ color: "var(--accent-blue)" }}>{s.redirect_count}</td>
-                            <td className="font-nums font-bold" style={{ color: "var(--accent-orange)" }}>{formatINR(s.estimated_loss)}</td>
-                            <td className="font-mono text-[11px]">{formatDate(s.created_at)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {selectedHistoryScan ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <button onClick={() => setSelectedHistoryScan(null)} className="btn-secondary text-xs">
+                      <S.chevronDown /> Back to History
+                    </button>
+                    <h3 className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>Scan Details: {selectedHistoryScan.page_url}</h3>
                   </div>
-                )}
-              </div>
+                  
+                  {/* Re-construct links for LinkResultsTable */}
+                  <LinkResultsTable 
+                    title="All Checked Links" 
+                    showBrokenHighlight={true}
+                    links={[
+                      ...(selectedHistoryScan.broken_links_data || []),
+                      ...(selectedHistoryScan.ok_links_data || []),
+                      ...(selectedHistoryScan.redirect_links_data || []),
+                      ...(selectedHistoryScan.unverifiable_links_data || [])
+                    ]} 
+                  />
+                </div>
+              ) : (
+                <div
+                  className="rounded-2xl border overflow-hidden"
+                  style={{ background: "var(--bg-card)", border: "1.5px solid var(--border-card)" }}
+                >
+                  {scans.length === 0 ? (
+                    <EmptyState icon={S.history(false)} title="No Scans Yet" desc="Initiated scan histories will appear here." />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="table-premium">
+                        <thead>
+                          <tr>
+                            {["Target Page", "Total Links", "OK", "Broken", "Redirect", "Est. Loss", "Date", "Action"].map(h => (
+                              <th key={h}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {scans.map(s => (
+                            <tr key={s.id}>
+                              <td className="font-mono text-[11px] truncate max-w-[200px]" title={s.page_url}>{truncate(s.page_url, 40)}</td>
+                              <td className="font-nums">{s.total_links}</td>
+                              <td className="font-nums" style={{ color: "var(--accent-green)" }}>{s.ok_count}</td>
+                              <td>
+                                <span className="font-nums font-bold" style={{ color: s.broken_count > 0 ? "var(--accent-red)" : "var(--accent-green)" }}>
+                                  {s.broken_count}
+                                </span>
+                              </td>
+                              <td className="font-nums" style={{ color: "var(--accent-blue)" }}>{s.redirect_count}</td>
+                              <td className="font-nums font-bold" style={{ color: "var(--accent-orange)" }}>{formatINR(s.estimated_loss)}</td>
+                              <td className="font-mono text-[11px]">{formatDate(s.created_at)}</td>
+                              <td>
+                                <button 
+                                  onClick={() => setSelectedHistoryScan(s)}
+                                  className="text-[10px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors"
+                                  style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+                                >
+                                  View Details
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
