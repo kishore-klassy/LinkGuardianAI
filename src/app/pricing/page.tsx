@@ -20,10 +20,11 @@ const FALLBACK_PLANS: Plan[] = [
     price_usd: 6,
     features: [
       "50 link scans/day",
-      "Chrome extension access",
+      "Automated monitoring",
       "Basic broken link detection",
       "Email alerts",
       "1 website monitored",
+      "Scan up to 50 YouTube videos",
     ],
     cta: "Start Free Trial",
   },

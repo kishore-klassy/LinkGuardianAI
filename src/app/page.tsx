@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
+import { ThemeToggle } from "@/lib/components/ThemeToggle";
 import { cn, log } from "@/lib/utils";
 
 interface Plan {
@@ -121,19 +122,12 @@ function NavBar() {
 
         {/* CTA */}
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <a
-            href="/login"
-            className="text-sm font-medium transition-colors duration-200 hover:text-[var(--accent)]"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Sign In
-          </a>
-          <a
-            href="https://chromewebstore.google.com"
-            target="_blank"
+            href="/dashboard"
             className="btn-primary text-xs hidden sm:inline-flex"
           >
-            Add to Chrome
+            Go to Scanner
             {Icons.arrowRight()}
           </a>
           <button
@@ -246,20 +240,9 @@ function Hero() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 animate-slideUp animate-delay-200">
-          <a
-            href="https://chromewebstore.google.com"
-            target="_blank"
-            className="btn-primary px-8 py-3.5 text-sm"
-          >
-            Install Free Extension
+          <a href="/dashboard" className="btn-primary shadow-lg shadow-indigo-500/25 px-8 py-4 text-sm w-full sm:w-auto justify-center">
+            Go to Scanner
             {Icons.arrowRight()}
-          </a>
-          <a
-            href="/dashboard"
-            className="btn-secondary px-8 py-3.5 text-sm"
-          >
-            {Icons.play()}
-            Open Dashboard
           </a>
         </div>
 
@@ -433,8 +416,8 @@ function FeaturesSection() {
   const features = [
     { icon: Icons.shield(), title: "Out-of-Stock Engine", desc: "We parse page content directly, flagging links that redirect to discontinued or out-of-stock product listings.", tag: "AI-Powered" },
     { icon: Icons.youtube(), title: "YouTube Channel Monitor", desc: "Connect your channel handle to automatically parse video descriptions. Results are weighted by recent view counts.", tag: "Pro" },
-    { icon: Icons.sparkles(), title: "AI Suggestion Matches", desc: "We analyze the broken target page and recommend equivalent active merchant links for rapid replacement.", tag: "AI-Powered" },
-    { icon: Icons.link(), title: "Extension Overlays", desc: "Overlay indicators highlight broken and warning links natively as you browse your own web pages.", tag: "Extension" },
+    { icon: Icons.youtube(), title: "YouTube Channel Scan", desc: "Scan YouTube video descriptions across your entire channel for dead affiliate links instantly.", tag: "YouTube" },
+    { icon: Icons.link(), title: "Automated Rescanning", desc: "Schedule continuous background monitoring of your most important pages to never miss a broken link.", tag: "Automation" },
     { icon: Icons.alert(), title: "Automated Alerts", desc: "Receive weekly summaries or real-time alerts via Email and WhatsApp as soon as monitored links degrade.", tag: "Pro" },
     { icon: Icons.zap(), title: "Fast Parallel Parsing", desc: "Check dozens of URLs concurrently. Get full page validation and redirect paths within seconds.", tag: "Engine" },
   ];
@@ -442,7 +425,8 @@ function FeaturesSection() {
   const tagColors: Record<string, { bg: string; text: string; border: string }> = {
     "AI-Powered": { bg: "var(--accent-purple-bg)", text: "var(--accent-purple)", border: "rgba(139,92,246,0.25)" },
     Pro: { bg: "var(--accent-blue-bg)", text: "var(--accent-blue)", border: "rgba(59,130,246,0.25)" },
-    Extension: { bg: "var(--accent-green-bg)", text: "var(--accent-green)", border: "rgba(16,185,129,0.25)" },
+    YouTube: { bg: "var(--accent-red-bg)", text: "var(--accent-red)", border: "rgba(239,68,68,0.25)" },
+    Automation: { bg: "var(--accent-green-bg)", text: "var(--accent-green)", border: "rgba(16,185,129,0.25)" },
     Engine: { bg: "var(--bg-hover)", text: "var(--text-secondary)", border: "var(--border-color)" },
   };
 
@@ -557,12 +541,9 @@ function PricingSection({ plans }: { plans: Plan[] }) {
                 ))}
               </ul>
             </div>
-            <a
-              href={plan.id === "agency" ? "/contact" : `/checkout?plan=${plan.id}`}
-              className={plan.popular ? "btn-primary block text-center" : "btn-secondary block text-center"}
-            >
-              {plan.cta}
-            </a>
+            <a href="/dashboard" className="block text-center py-4 rounded-xl mt-4 font-bold" style={{ background: "var(--accent-gradient)", color: "#fff" }}>
+                Go to Scanner
+              </a>
           </div>
         ))}
       </div>
@@ -680,14 +661,13 @@ function CTA() {
               Audit your link health.
             </h2>
             <p className="mb-8 max-w-md mx-auto text-sm" style={{ color: "var(--text-secondary)" }}>
-              Get started with 3 free scans daily. Install our extension in seconds — no configuration or signup required.
+              Get started with 3 free scans daily. Go to the scanner in seconds — no configuration or signup required.
             </p>
             <a
-              href="https://chromewebstore.google.com"
-              target="_blank"
-              className="btn-primary px-10 py-4 text-sm"
+              href="/dashboard"
+              className="btn-primary px-8 py-4 text-sm inline-flex shadow-xl shadow-indigo-500/20"
             >
-              Add Extension to Chrome
+              Go to Scanner
               {Icons.arrowRight()}
             </a>
             <div className="mt-4 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
@@ -707,7 +687,7 @@ const FALLBACK_PLANS: Plan[] = [
     name: "Starter",
     price_inr: 499,
     price_usd: 6,
-    features: ["50 link scans/day", "Chrome extension access", "Basic broken link detection", "Email alerts", "1 website monitored", "Scan up to 20 YouTube videos"],
+    features: ["50 link scans/day", "Automated monitoring", "Basic broken link detection", "Email alerts", "1 website monitored", "Scan up to 50 YouTube videos"],
     cta: "Start Free Trial",
   },
   {

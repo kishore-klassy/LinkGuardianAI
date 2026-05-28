@@ -221,8 +221,8 @@ function ToggleSwitch({ value, onChange }: { value: boolean; onChange: (v: boole
 // ─── YouTube Video Count Selector ────────────────────────────────────────────
 
 const PLAN_VIDEO_LIMITS: Record<string, number> = {
-  free: 5,
-  starter: 20,
+  free: 50,
+  starter: 50,
   pro: 200,
   agency: 200,
   admin: 200,
@@ -233,12 +233,12 @@ function VideoCountSelector({
 }: {
   value: number; onChange: (v: number) => void; plan: string;
 }) {
-  const limit = PLAN_VIDEO_LIMITS[plan] || 5;
+  const limit = PLAN_VIDEO_LIMITS[plan] || 50;
   const options = [
     { label: "5 videos", value: 5, minPlan: "free" },
-    { label: "10 videos", value: 10, minPlan: "starter" },
-    { label: "20 videos", value: 20, minPlan: "starter" },
-    { label: "50 videos", value: 50, minPlan: "pro" },
+    { label: "10 videos", value: 10, minPlan: "free" },
+    { label: "20 videos", value: 20, minPlan: "free" },
+    { label: "50 videos", value: 50, minPlan: "free" },
     { label: "100 videos", value: 100, minPlan: "pro" },
     { label: "200 videos", value: 200, minPlan: "pro" },
   ];
@@ -1007,25 +1007,14 @@ export default function Dashboard() {
     </div>
   );
 
-  if (!user) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
-      <div
-        className="text-center animate-scaleIn max-w-sm p-8 rounded-2xl"
-        style={{ background: "var(--bg-card-glass)", backdropFilter: "blur(20px)", border: "1.5px solid var(--border-card)", boxShadow: "var(--shadow-xl)" }}
-      >
-        <div className="flex justify-center mb-5 animate-float">{S.logo()}</div>
-        <h1 className="text-lg font-extrabold mb-1" style={{ color: "var(--text-primary)" }}>Welcome Back</h1>
-        <p className="text-xs mb-7 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-          Sign in to access your LinkGuardian.AI monitoring dashboard
-        </p>
-        <a href="/login" className="btn-primary w-full text-center block">
-          Sign In to Dashboard
-        </a>
-      </div>
-    </div>
-  );
+  const activeUser = user || { 
+    id: "anonymous", 
+    email: "guest@example.com", 
+    full_name: "Guest User", 
+    plan: "free" 
+  };
 
-  const currentPlan = stats?.plan || user.plan || "free";
+  const currentPlan = stats?.plan || activeUser.plan || "free";
 
   // ═══════════════════════════════════════════════════════════════════════════
   return (
@@ -1121,7 +1110,7 @@ export default function Dashboard() {
       </nav>
 
       {/* ─── Main Content ──────────────────────────────────────────────────── */}
-      <main className="flex-1 min-h-screen pb-20 md:pb-0 flex flex-col">
+      <main className="flex-1 min-w-0 min-h-screen pb-24 md:pb-0 flex flex-col">
 
         {/* Sticky Header */}
         <header
@@ -1153,10 +1142,10 @@ export default function Dashboard() {
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
                     style={{ background: "var(--accent-gradient)" }}
                   >
-                    {(user.full_name || "U").charAt(0).toUpperCase()}
+                    {(activeUser.full_name || "U").charAt(0).toUpperCase()}
                   </div>
                   <div className="hidden sm:block text-left">
-                    <div className="text-xs font-bold leading-none" style={{ color: "var(--text-primary)" }}>{user.full_name}</div>
+                    <div className="text-xs font-bold leading-none" style={{ color: "var(--text-primary)" }}>{activeUser.full_name}</div>
                     <div className="text-[9px] mt-0.5 uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>{currentPlan} plan</div>
                   </div>
                 </button>
@@ -1168,7 +1157,7 @@ export default function Dashboard() {
                       style={{ background: "var(--bg-card-glass)", backdropFilter: "blur(20px)", borderColor: "var(--border-card)" }}
                     >
                       <div className="px-4 py-3 border-b text-[10px] font-mono" style={{ borderColor: "var(--border-color)", color: "var(--text-tertiary)" }}>
-                        {user.email}
+                        {activeUser.email}
                       </div>
                       <a href="/pricing" className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-[var(--bg-hover)]" style={{ color: "var(--text-secondary)" }}>
                         <S.plus /> Upgrade Plan
@@ -1645,11 +1634,11 @@ export default function Dashboard() {
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold text-white shrink-0"
                     style={{ background: "var(--accent-gradient)" }}
                   >
-                    {(user.full_name || "U").charAt(0).toUpperCase()}
+                    {(activeUser.full_name || "U").charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-bold text-sm truncate" style={{ color: "var(--text-primary)" }}>{user.full_name}</div>
-                    <div className="text-[10px] font-mono truncate" style={{ color: "var(--text-tertiary)" }}>{user.email}</div>
+                    <div className="font-bold text-sm truncate" style={{ color: "var(--text-primary)" }}>{activeUser.full_name}</div>
+                    <div className="text-[10px] font-mono truncate" style={{ color: "var(--text-tertiary)" }}>{activeUser.email}</div>
                   </div>
                   <span
                     className="text-[9px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-wider shrink-0"
