@@ -19,8 +19,16 @@ def ensure_user_exists(user_id: str):
     if not user_id:
         return
     supabase = get_supabase()
-    r = supabase.table("users").select("id").eq("id", user_id).maybe_single().execute()
-    if not r or not r.data:
+    
+    r = None
+    try:
+        r = supabase.table("users").select("id").eq("id", user_id).maybe_single().execute()
+    except Exception as e:
+        error_str = str(e)
+        if "'code': '204'" not in error_str and "Missing response" not in error_str:
+            app_logger.logger.warning(f"Error checking user existence: {e}")
+            
+    if not r or not getattr(r, 'data', None):
         try:
             supabase.table("users").insert({
                 "id": user_id,
@@ -28,7 +36,9 @@ def ensure_user_exists(user_id: str):
                 "plan": "free"
             }).execute()
         except Exception as e:
-            app_logger.logger.error(f"Failed to ensure user exists: {e}")
+            error_str = str(e)
+            if "'code': '204'" not in error_str and "Missing response" not in error_str:
+                app_logger.logger.error(f"Failed to ensure user exists: {e}")
 
 
 from app.logging_config import logger as app_logger
@@ -67,8 +77,12 @@ async def save_scan_result(
         res = supabase.table("scans").insert(data).execute()
         app_logger.logger.info(f"==== DB INSERT SUCCESS: Response Data: {res.data} ====")
     except Exception as e:
-        app_logger.logger.error(f"==== DB INSERT FAILED: Error: {str(e)} ====", exc_info=True)
-        raise e
+        error_str = str(e)
+        if "'code': '204'" in error_str or "Missing response" in error_str:
+            app_logger.logger.info("==== DB INSERT SUCCESS (Empty 204 Response) ====")
+        else:
+            app_logger.logger.error(f"==== DB INSERT FAILED: Error: {error_str} ====", exc_info=True)
+            raise e
 
 
 async def update_user_subscription(user_id: str, plan: str, subscription_id: str):
