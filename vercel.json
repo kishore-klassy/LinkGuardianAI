@@ -3,13 +3,6 @@
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "env": {
-    "NEXT_PUBLIC_APP_URL": "https://expirelinkx.com",
-    "NEXT_PUBLIC_API_URL": "https://api.expirelinkx.com",
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key"
-  },
   "headers": [
     {
       "source": "/(.*)",
@@ -21,8 +14,5 @@
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
       ]
     }
-  ],
-  "redirects": [
-    { "source": "/api/(.*)", "destination": "https://api.expirelinkx.com/api/$1", "permanent": false }
   ]
 }
