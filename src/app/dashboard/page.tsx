@@ -1327,7 +1327,7 @@ export default function Dashboard() {
                       value={scanInput}
                       onChange={e => setScanInput(e.target.value)}
                       placeholder={inputMode === "url" ? "https://example.com/your-review-page" : "@ChannelHandle or channel URL"}
-                      className="input-premium pl-10"
+                      className="input-premium pl-11 md:pl-12 w-full"
                       onKeyDown={e => e.key === "Enter" && runScan()}
                     />
                   </div>
