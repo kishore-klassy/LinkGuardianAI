@@ -1,4 +1,4 @@
-export const LOG = "[ExpireLinkX]";
+export const LOG = "[LinkGuardian.AI]";
 
 export const log = {
   info: (msg: string, ...args: unknown[]) => console.log(`${LOG} ℹ️  ${msg}`, ...args),

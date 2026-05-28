@@ -14,8 +14,12 @@ COPY public/ ./public/
 COPY src/ ./src/
 # Avoid build-time prerendering errors when Supabase env vars are not provided.
 # Next can still compile; pages that need Supabase will be served at runtime.
-ENV NEXT_PUBLIC_SUPABASE_URL="http://localhost"
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY="local"
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 FROM node:20-alpine AS runner

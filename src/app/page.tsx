@@ -12,7 +12,7 @@ interface Plan {
   popular?: boolean;
 }
 
-// ─── SVG Minimal Icons ────────────────────────────────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────────────────────
 const Icons = {
   shield: () => (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -51,26 +51,37 @@ const Icons = {
     </svg>
   ),
   check: () => (
-    <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
     </svg>
   ),
   close: () => (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   ),
   menu: () => (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
     </svg>
-  )
+  ),
+  zap: () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+    </svg>
+  ),
+  star: () => (
+    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+    </svg>
+  ),
 };
 
+// ─── NavBar ───────────────────────────────────────────────────────────────────
 function NavBar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  
+
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", fn, { passive: true });
@@ -80,49 +91,82 @@ function NavBar() {
   return (
     <nav
       className={cn(
-        "fixed top-0 w-full z-50 transition-all duration-300",
+        "fixed top-0 w-full z-50 transition-all duration-400",
         scrolled
-          ? "bg-[#09090b]/80 backdrop-blur-xl border-b border-zinc-800/80"
+          ? "glass-nav border-b shadow-md"
           : "bg-transparent border-b border-transparent"
       )}
+      style={{ borderColor: scrolled ? "var(--border-color)" : "transparent" }}
     >
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/10">
+        {/* Logo */}
+        <a href="/" className="flex items-center gap-2.5 group">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-lg transition-transform duration-300 group-hover:scale-105"
+            style={{ background: "var(--accent-gradient)", boxShadow: "0 4px 16px rgba(108,71,255,0.35)" }}
+          >
             {Icons.shield()}
           </div>
-          <span className="font-extrabold text-lg tracking-tight text-white">
-            Expire<span className="text-indigo-400">LinkX</span>
+          <span className="font-extrabold text-lg tracking-tight" style={{ color: "var(--text-primary)" }}>
+            LinkGuardian<span style={{ color: "var(--accent)" }}>.AI</span>
           </span>
+        </a>
+
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+          <a href="#features" className="hover:text-[var(--accent)] transition-colors duration-200">Features</a>
+          <a href="#pricing" className="hover:text-[var(--accent)] transition-colors duration-200">Pricing</a>
+          <a href="#faq" className="hover:text-[var(--accent)] transition-colors duration-200">FAQ</a>
         </div>
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-          <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-        </div>
-        <div className="flex items-center gap-4">
-          <a href="/login" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Sign In</a>
+
+        {/* CTA */}
+        <div className="flex items-center gap-3">
+          <a
+            href="/login"
+            className="text-sm font-medium transition-colors duration-200 hover:text-[var(--accent)]"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Sign In
+          </a>
           <a
             href="https://chromewebstore.google.com"
             target="_blank"
-            className="text-xs font-semibold bg-white text-zinc-950 px-4.5 py-2.5 rounded-xl hover:bg-zinc-200 transition-colors shadow-sm hidden sm:inline-block"
+            className="btn-primary text-xs hidden sm:inline-flex"
           >
             Add to Chrome
+            {Icons.arrowRight()}
           </a>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-zinc-400 hover:text-white transition-colors">
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded-lg transition-colors hover:bg-[var(--bg-hover)]"
+            style={{ color: "var(--text-secondary)" }}
+          >
             {mobileOpen ? Icons.close() : Icons.menu()}
           </button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-[#0c0c0e] border-b border-zinc-800 px-6 py-6 space-y-4 animate-fadeIn">
-          <a href="#features" className="block text-sm font-medium text-zinc-400 hover:text-white" onClick={() => setMobileOpen(false)}>Features</a>
-          <a href="#pricing" className="block text-sm font-medium text-zinc-400 hover:text-white" onClick={() => setMobileOpen(false)}>Pricing</a>
-          <a href="#faq" className="block text-sm font-medium text-zinc-400 hover:text-white" onClick={() => setMobileOpen(false)}>FAQ</a>
+        <div
+          className="md:hidden border-b px-6 py-5 space-y-3 animate-fadeIn glass-nav"
+          style={{ borderColor: "var(--border-color)" }}
+        >
+          {["#features", "#pricing", "#faq"].map((href) => (
+            <a
+              key={href}
+              href={href}
+              className="block text-sm font-medium py-2 transition-colors hover:text-[var(--accent)]"
+              style={{ color: "var(--text-secondary)" }}
+              onClick={() => setMobileOpen(false)}
+            >
+              {href.slice(1).charAt(0).toUpperCase() + href.slice(2)}
+            </a>
+          ))}
           <a
             href="https://chromewebstore.google.com"
             target="_blank"
-            className="block text-sm font-semibold bg-white text-zinc-950 text-center py-3 rounded-xl hover:bg-zinc-200 transition-colors"
+            className="btn-primary w-full text-center block mt-2"
           >
             Add to Chrome
           </a>
@@ -132,108 +176,177 @@ function NavBar() {
   );
 }
 
+// ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-32 pb-24">
-      {/* Premium Background Lighting */}
-      <div className="absolute inset-0 bg-[#09090b]" />
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28 pb-20">
+      {/* Background */}
+      <div className="absolute inset-0" style={{ background: "var(--bg-primary)" }} />
+      {/* Hero gradient */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "var(--gradient-hero)" }} />
+      {/* Subtle grid */}
       <div
-        className="absolute top-12 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[160px] opacity-25 pointer-events-none"
-        style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 80%)" }}
-      />
-      {/* Ultra Fine Grid Pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.02] pointer-events-none"
+        className="absolute inset-0 opacity-[0.025] pointer-events-none"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
+            "linear-gradient(var(--accent) 1px, transparent 1px), linear-gradient(90deg, var(--accent) 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
         }}
+      />
+      {/* Floating orbs */}
+      <div
+        className="absolute top-24 right-1/4 w-72 h-72 rounded-full pointer-events-none animate-float"
+        style={{ background: "radial-gradient(circle, rgba(108,71,255,0.12) 0%, transparent 70%)", filter: "blur(40px)" }}
+      />
+      <div
+        className="absolute bottom-32 left-1/4 w-56 h-56 rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(156,111,255,0.10) 0%, transparent 70%)", filter: "blur(32px)" }}
       />
 
       <div className="relative max-w-5xl mx-auto px-6 text-center z-10">
-        {/* Sleek Pill Badge */}
-        <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800/80 rounded-full px-4 py-1.5 mb-8">
-          <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
-          <span className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
+        {/* Badge */}
+        <div
+          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-8 animate-fadeIn"
+          style={{
+            background: "var(--accent-light)",
+            border: "1px solid var(--border-card)",
+          }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: "var(--accent)" }} />
+          <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "var(--accent)" }}>
             AI-powered affiliate revenue protection
           </span>
         </div>
 
-        {/* Elegant Premium Title */}
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.05] text-gradient-premium max-w-4xl mx-auto">
-          Stop losing commissions <br /> to dead links.
+        {/* Headline */}
+        <h1
+          className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.05] max-w-4xl mx-auto animate-slideUp"
+        >
+          <span className="dark:text-gradient-premium text-gradient-premium-light">Stop losing commissions</span>
+          <br />
+          <span className="text-gradient-vivid">to dead links.</span>
         </h1>
 
-        <p className="text-base md:text-lg text-zinc-400 max-w-2xl mx-auto mb-12 leading-relaxed">
-          One broken Amazon affiliate link costs creators thousands in lost revenue. ExpireLinkX monitors your website and YouTube descriptions in real time, automatically suggesting replacements.
+        <p
+          className="text-base md:text-lg max-w-2xl mx-auto mb-10 leading-relaxed animate-slideUp animate-delay-100"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          One broken Amazon affiliate link costs creators thousands in lost revenue.{" "}
+          <strong className="font-semibold" style={{ color: "var(--text-primary)" }}>LinkGuardian.AI</strong> monitors your
+          website and YouTube descriptions in real time, automatically suggesting replacements.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
+        {/* Social proof */}
+        <div className="flex items-center justify-center gap-1 mb-10 animate-fadeIn animate-delay-200">
+          {[...Array(5)].map((_, i) => (
+            <span key={i} style={{ color: "#F59E0B" }}>{Icons.star()}</span>
+          ))}
+          <span className="ml-2 text-xs font-semibold" style={{ color: "var(--text-tertiary)" }}>Trusted by 1,200+ creators</span>
+        </div>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 animate-slideUp animate-delay-200">
           <a
             href="https://chromewebstore.google.com"
             target="_blank"
-            className="inline-flex items-center gap-2 bg-white text-zinc-950 font-semibold px-8 py-4 rounded-xl text-sm hover:bg-zinc-200 transition-all hover:-translate-y-0.5 shadow-lg shadow-white/5"
+            className="btn-primary px-8 py-3.5 text-sm"
           >
             Install Free Extension
             {Icons.arrowRight()}
           </a>
           <a
-            href="#demo"
-            className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 text-zinc-300 font-semibold px-8 py-4 rounded-xl text-sm hover:bg-zinc-800 transition-all"
+            href="/dashboard"
+            className="btn-secondary px-8 py-3.5 text-sm"
           >
             {Icons.play()}
-            Watch Demo
+            Open Dashboard
           </a>
         </div>
 
-        {/* Dashboard Mockup wireframe (Professional Premium UI) */}
-        <div className="relative mx-auto max-w-4xl rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-3 shadow-2xl shadow-indigo-500/5 backdrop-blur-sm animate-slideUp">
-          <div className="flex items-center gap-2 px-3 pb-3 border-b border-zinc-900">
-            <span className="w-2.5 h-2.5 rounded-full bg-zinc-800" />
-            <span className="w-2.5 h-2.5 rounded-full bg-zinc-800" />
-            <span className="w-2.5 h-2.5 rounded-full bg-zinc-800" />
-            <div className="ml-4 text-[10px] text-zinc-600 bg-zinc-900/50 rounded px-6 py-0.5 font-mono">dashboard.expirelinkx.com</div>
-          </div>
-          <div className="grid grid-cols-12 gap-4 p-4 text-left">
-            <div className="col-span-3 border-r border-zinc-900/80 pr-4 space-y-2.5 hidden md:block">
-              <div className="h-3 w-16 bg-zinc-800/60 rounded" />
-              <div className="h-7 bg-indigo-950/20 border border-indigo-900/30 rounded-lg" />
-              <div className="h-7 bg-zinc-900/30 rounded-lg" />
-              <div className="h-7 bg-zinc-900/30 rounded-lg" />
+        {/* Dashboard Mockup */}
+        <div
+          className="relative mx-auto max-w-4xl rounded-2xl p-3 animate-slideUp animate-delay-300"
+          style={{
+            background: "var(--bg-card-glass)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid var(--border-card)",
+            boxShadow: "var(--shadow-xl)",
+          }}
+        >
+          {/* Browser chrome */}
+          <div className="flex items-center gap-2 px-3 pb-3 border-b" style={{ borderColor: "var(--border-color)" }}>
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-400/60" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400/60" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/60" />
+            <div
+              className="ml-3 text-[10px] font-mono px-6 py-0.5 rounded"
+              style={{ background: "var(--bg-hover)", color: "var(--text-tertiary)" }}
+            >
+              dashboard.linkguardian.ai
             </div>
+          </div>
+
+          {/* Mockup content */}
+          <div className="grid grid-cols-12 gap-4 p-4 text-left">
+            {/* Sidebar */}
+            <div className="col-span-3 border-r pr-4 space-y-2 hidden md:block" style={{ borderColor: "var(--border-color)" }}>
+              <div className="h-3 w-20 rounded skeleton mb-3" />
+              <div
+                className="h-8 rounded-xl"
+                style={{ background: "var(--accent-light)", border: "1px solid var(--border-card)" }}
+              />
+              <div className="h-8 rounded-xl skeleton" />
+              <div className="h-8 rounded-xl skeleton" />
+              <div className="h-8 rounded-xl skeleton" />
+            </div>
+
+            {/* Main content */}
             <div className="col-span-12 md:col-span-9 space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="h-4 w-32 bg-zinc-800 rounded" />
-                <div className="h-6 w-20 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded flex items-center justify-center">Active Scan</div>
-              </div>
+              {/* KPI row */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-zinc-900/40 border border-zinc-900 p-3 rounded-xl space-y-1">
-                  <div className="text-[10px] text-zinc-500 font-medium">LINKS MONITORED</div>
-                  <div className="text-lg font-bold font-nums text-white">4,281</div>
-                </div>
-                <div className="bg-zinc-900/40 border border-zinc-900 p-3 rounded-xl space-y-1">
-                  <div className="text-[10px] text-zinc-500 font-medium">DEAD DETECTED</div>
-                  <div className="text-lg font-bold font-nums text-rose-400">12</div>
-                </div>
-                <div className="bg-zinc-900/40 border border-zinc-900 p-3 rounded-xl space-y-1">
-                  <div className="text-[10px] text-zinc-500 font-medium">REVENUE SAVED</div>
-                  <div className="text-lg font-bold font-nums text-white">₹8,450</div>
-                </div>
+                {[
+                  { label: "LINKS MONITORED", value: "4,281", color: "var(--accent)" },
+                  { label: "DEAD DETECTED", value: "12", color: "var(--accent-red)" },
+                  { label: "REVENUE SAVED", value: "₹8,450", color: "var(--accent-green)" },
+                ].map((kpi) => (
+                  <div
+                    key={kpi.label}
+                    className="rounded-xl p-3 space-y-1"
+                    style={{ background: "var(--bg-hover)", border: "1px solid var(--border-card)" }}
+                  >
+                    <div className="text-[9px] font-bold tracking-widest uppercase" style={{ color: "var(--text-tertiary)" }}>{kpi.label}</div>
+                    <div className="text-base font-bold font-nums" style={{ color: kpi.color }}>{kpi.value}</div>
+                  </div>
+                ))}
               </div>
-              <div className="border border-zinc-900 rounded-xl overflow-hidden text-xs">
-                <div className="bg-zinc-900/20 p-2.5 border-b border-zinc-900 flex justify-between text-zinc-500 font-medium">
-                  <span>Target Page URL</span>
-                  <span>Status</span>
+
+              {/* Link table */}
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-color)" }}>
+                <div
+                  className="flex justify-between text-[9px] font-bold uppercase tracking-widest px-3 py-2 border-b"
+                  style={{ background: "var(--bg-tertiary)", borderColor: "var(--border-color)", color: "var(--text-tertiary)" }}
+                >
+                  <span>Target URL</span><span>Status</span>
                 </div>
-                <div className="p-3 flex justify-between items-center border-b border-zinc-900/50 bg-zinc-950/20">
-                  <span className="text-zinc-400 font-mono">.../best-mirrorless-cameras-2026</span>
-                  <span className="text-rose-400 bg-rose-500/5 border border-rose-500/10 px-2 py-0.5 rounded text-[10px] font-bold">2 Out-of-Stock</span>
-                </div>
-                <div className="p-3 flex justify-between items-center bg-zinc-950/10">
-                  <span className="text-zinc-400 font-mono">.../top-vlogging-gears</span>
-                  <span className="text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-[10px] font-bold">Healthy</span>
-                </div>
+                {[
+                  { url: ".../best-mirrorless-cameras-2026", status: "Out-of-Stock", color: "var(--accent-orange)", bg: "var(--accent-orange-bg)" },
+                  { url: ".../top-vlogging-gears", status: "Healthy", color: "var(--accent-green)", bg: "var(--accent-green-bg)" },
+                  { url: ".../budget-laptops-india", status: "Broken", color: "var(--accent-red)", bg: "var(--accent-red-bg)" },
+                ].map((row, i) => (
+                  <div
+                    key={i}
+                    className="flex justify-between items-center px-3 py-2.5 text-[10px] border-b last:border-b-0"
+                    style={{ borderColor: "var(--border-color)" }}
+                  >
+                    <span className="font-mono" style={{ color: "var(--text-secondary)" }}>{row.url}</span>
+                    <span
+                      className="px-2 py-0.5 rounded text-[9px] font-bold"
+                      style={{ color: row.color, background: row.bg, border: `1px solid ${row.color}25` }}
+                    >
+                      {row.status}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -243,6 +356,7 @@ function Hero() {
   );
 }
 
+// ─── Pain Section ─────────────────────────────────────────────────────────────
 function PainSection() {
   const pains = [
     {
@@ -268,29 +382,43 @@ function PainSection() {
   ];
 
   return (
-    <section id="features" className="py-28 bg-[#09090b]">
+    <section id="features" className="py-28" style={{ background: "var(--bg-primary)" }}>
       <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-20">
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4 text-white">
+        <div className="text-center mb-16">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-4 text-[11px] font-bold tracking-widest uppercase"
+            style={{ background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--border-card)" }}
+          >
+            The Problem
+          </div>
+          <h2
+            className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4"
+            style={{ color: "var(--text-primary)" }}
+          >
             The silent revenue killer.
           </h2>
-          <p className="text-zinc-400 max-w-xl mx-auto text-sm md:text-base">
-            Affiliate marketers lose up to 15% of their commissions to broken or discontinued product links. We solve this without the agency price tag.
+          <p className="max-w-xl mx-auto text-sm md:text-base" style={{ color: "var(--text-secondary)" }}>
+            Affiliate marketers lose up to 15% of their commissions to broken or discontinued product links.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
           {pains.map((p, idx) => (
             <div
               key={idx}
-              className="bg-[#0c0c0e] border border-zinc-800/80 rounded-2xl p-6.5 hover:border-zinc-700/80 transition-colors flex gap-4"
+              className="glass-card rounded-2xl p-6 flex gap-4"
             >
-              <div className="text-indigo-400 shrink-0 mt-0.5">{p.icon}</div>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+              >
+                {p.icon}
+              </div>
               <div>
-                <h3 className="font-bold text-sm mb-2 text-white">
+                <h3 className="font-bold text-sm mb-2" style={{ color: "var(--text-primary)" }}>
                   {p.title}
                 </h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">{p.desc}</p>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{p.desc}</p>
               </div>
             </div>
           ))}
@@ -300,61 +428,41 @@ function PainSection() {
   );
 }
 
+// ─── Features Section ─────────────────────────────────────────────────────────
 function FeaturesSection() {
   const features = [
-    {
-      icon: Icons.shield(),
-      title: "Out-of-Stock Engine",
-      desc: "We parse page content directly, flagging links that redirect to discontinued or out-of-stock product listings.",
-      tag: "AI-Powered",
-    },
-    {
-      icon: Icons.youtube(),
-      title: "YouTube Channel Monitor",
-      desc: "Connect your channel handle to automatically parse video descriptions. Results are weighted by recent view counts.",
-      tag: "Pro",
-    },
-    {
-      icon: Icons.sparkles(),
-      title: "AI Suggestion Matches",
-      desc: "We analyze the broken target page and recommend equivalent active merchant links for rapid replacement.",
-      tag: "AI-Powered",
-    },
-    {
-      icon: Icons.link(),
-      title: "Extension Overlays",
-      desc: "Overlay indicators highlight broken and warning links natively as you browse your own web pages.",
-      tag: "Extension",
-    },
-    {
-      icon: Icons.alert(),
-      title: "Automated Alerts",
-      desc: "Receive weekly summaries or real-time alerts via Email and WhatsApp as soon as monitored links degrade.",
-      tag: "Pro",
-    },
-    {
-      icon: Icons.arrowRight(),
-      title: "Fast Parallel Parsing",
-      desc: "Check dozens of URLs concurrently. Get full page validation and redirects paths within seconds.",
-      tag: "Engine",
-    },
+    { icon: Icons.shield(), title: "Out-of-Stock Engine", desc: "We parse page content directly, flagging links that redirect to discontinued or out-of-stock product listings.", tag: "AI-Powered" },
+    { icon: Icons.youtube(), title: "YouTube Channel Monitor", desc: "Connect your channel handle to automatically parse video descriptions. Results are weighted by recent view counts.", tag: "Pro" },
+    { icon: Icons.sparkles(), title: "AI Suggestion Matches", desc: "We analyze the broken target page and recommend equivalent active merchant links for rapid replacement.", tag: "AI-Powered" },
+    { icon: Icons.link(), title: "Extension Overlays", desc: "Overlay indicators highlight broken and warning links natively as you browse your own web pages.", tag: "Extension" },
+    { icon: Icons.alert(), title: "Automated Alerts", desc: "Receive weekly summaries or real-time alerts via Email and WhatsApp as soon as monitored links degrade.", tag: "Pro" },
+    { icon: Icons.zap(), title: "Fast Parallel Parsing", desc: "Check dozens of URLs concurrently. Get full page validation and redirect paths within seconds.", tag: "Engine" },
   ];
 
-  const tagColors: Record<string, string> = {
-    "AI-Powered": "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-    Pro: "bg-zinc-800 text-zinc-400 border-zinc-700/50",
-    Extension: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-    Engine: "bg-zinc-800 text-zinc-400 border-zinc-700/50",
+  const tagColors: Record<string, { bg: string; text: string; border: string }> = {
+    "AI-Powered": { bg: "var(--accent-purple-bg)", text: "var(--accent-purple)", border: "rgba(139,92,246,0.25)" },
+    Pro: { bg: "var(--accent-blue-bg)", text: "var(--accent-blue)", border: "rgba(59,130,246,0.25)" },
+    Extension: { bg: "var(--accent-green-bg)", text: "var(--accent-green)", border: "rgba(16,185,129,0.25)" },
+    Engine: { bg: "var(--bg-hover)", text: "var(--text-secondary)", border: "var(--border-color)" },
   };
 
   return (
-    <section className="py-28 bg-[#0c0c0e] border-y border-zinc-900">
+    <section
+      className="py-28 border-y"
+      style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)" }}
+    >
       <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-20">
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4 text-white">
+        <div className="text-center mb-16">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-4 text-[11px] font-bold tracking-widest uppercase"
+            style={{ background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--border-card)" }}
+          >
+            Features
+          </div>
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4" style={{ color: "var(--text-primary)" }}>
             Built for modern publishers.
           </h2>
-          <p className="text-zinc-400 max-w-xl mx-auto text-sm">
+          <p className="max-w-xl mx-auto text-sm" style={{ color: "var(--text-secondary)" }}>
             Everything you need to monitor, detect, and fix link issues automatically.
           </p>
         </div>
@@ -362,23 +470,33 @@ function FeaturesSection() {
           {features.map((f, idx) => (
             <div
               key={idx}
-              className="bg-[#09090b] border border-zinc-800/85 rounded-2xl p-6.5 hover:border-indigo-500/30 transition-all group"
+              className="glass-card rounded-2xl p-6 group cursor-default"
             >
               <div className="flex items-start justify-between mb-4">
-                <span className="text-indigo-400">{f.icon}</span>
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                  style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+                >
+                  {f.icon}
+                </div>
                 <span
-                  className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-md border",
-                    tagColors[f.tag] || ""
-                  )}
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-lg border"
+                  style={{
+                    background: tagColors[f.tag]?.bg,
+                    color: tagColors[f.tag]?.text,
+                    borderColor: tagColors[f.tag]?.border,
+                  }}
                 >
                   {f.tag}
                 </span>
               </div>
-              <h3 className="font-bold text-sm mb-2 text-white group-hover:text-indigo-400 transition-colors">
+              <h3
+                className="font-bold text-sm mb-2 transition-colors duration-200 group-hover:text-[var(--accent)]"
+                style={{ color: "var(--text-primary)" }}
+              >
                 {f.title}
               </h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">{f.desc}</p>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{f.desc}</p>
             </div>
           ))}
         </div>
@@ -387,6 +505,7 @@ function FeaturesSection() {
   );
 }
 
+// ─── Pricing Section ──────────────────────────────────────────────────────────
 function PricingSection({ plans }: { plans: Plan[] }) {
   return (
     <div className="max-w-5xl mx-auto px-6">
@@ -395,63 +514,71 @@ function PricingSection({ plans }: { plans: Plan[] }) {
           <div
             key={plan.id}
             className={cn(
-              "relative rounded-2xl p-6.5 border flex flex-col justify-between transition-all duration-300",
+              "relative rounded-2xl p-6 flex flex-col justify-between transition-all duration-300",
               plan.popular
-                ? "bg-[#0c0c0e] border-indigo-500/50 shadow-lg shadow-indigo-500/5 scale-[1.02]"
-                : "bg-[#0c0c0e] border-zinc-850 hover:border-zinc-700/80"
+                ? "scale-[1.02]"
+                : ""
             )}
+            style={{
+              background: plan.popular ? "var(--bg-card-glass)" : "var(--bg-card)",
+              backdropFilter: plan.popular ? "blur(16px)" : "none",
+              border: plan.popular ? "1.5px solid var(--border-strong)" : "1.5px solid var(--border-card)",
+              boxShadow: plan.popular ? "var(--shadow-lg)" : "var(--shadow-card)",
+            }}
           >
             {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              <div
+                className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+                style={{ background: "var(--accent-gradient)", boxShadow: "0 4px 16px rgba(108,71,255,0.40)" }}
+              >
                 Most Popular
               </div>
             )}
             <div>
-              <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">{plan.name}</div>
-              <div className="flex items-baseline gap-1 mb-1 mt-3">
-                <span className="text-4xl font-extrabold text-white">
+              <div
+                className="text-[11px] font-bold uppercase tracking-widest mb-1"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                {plan.name}
+              </div>
+              <div className="flex items-baseline gap-1 mt-3 mb-1">
+                <span className="text-4xl font-extrabold" style={{ color: "var(--text-primary)" }}>
                   ₹{plan.price_inr}
                 </span>
-                <span className="text-zinc-500 text-xs font-medium">/month</span>
+                <span className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>/month</span>
               </div>
-              <div className="text-zinc-500 text-[11px] mb-6">${plan.price_usd} USD</div>
-
+              <div className="text-[11px] mb-6" style={{ color: "var(--text-tertiary)" }}>${plan.price_usd} USD</div>
               <ul className="space-y-3 mb-8">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-xs text-zinc-400">
-                    <span className="mt-0.5 shrink-0">{Icons.check()}</span>
+                  <li key={f} className="flex items-start gap-2.5 text-xs" style={{ color: "var(--text-secondary)" }}>
+                    <span className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }}>{Icons.check()}</span>
                     {f}
                   </li>
                 ))}
               </ul>
             </div>
-
             <a
               href={plan.id === "agency" ? "/contact" : `/checkout?plan=${plan.id}`}
-              className={cn(
-                "block text-center font-bold py-3 rounded-xl text-xs transition-all",
-                plan.popular
-                  ? "bg-indigo-600 text-white hover:bg-indigo-500"
-                  : "bg-zinc-900 text-zinc-200 hover:bg-zinc-800 border border-zinc-800"
-              )}
+              className={plan.popular ? "btn-primary block text-center" : "btn-secondary block text-center"}
             >
               {plan.cta}
             </a>
           </div>
         ))}
       </div>
-      <div className="text-center mt-10 text-xs text-zinc-500">
+      <div className="text-center mt-10 text-xs" style={{ color: "var(--text-tertiary)" }}>
         All memberships include a risk-free 7-day trial · Cancel or upgrade at any time
       </div>
     </div>
   );
 }
 
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
 function FAQ() {
   const faqs = [
     {
       q: "Does the extension impact browser speeds?",
-      a: "No. ExpireLinkX only checks page structures on-demand when you request a scan. No persistent scripts run in the background on other tabs.",
+      a: "No. LinkGuardian.AI only checks page structures on-demand when you request a scan. No persistent scripts run in the background on other tabs.",
     },
     {
       q: "How does out-of-stock monitoring verify Amazon listings?",
@@ -459,37 +586,58 @@ function FAQ() {
     },
     {
       q: "What is required to scan a YouTube channel?",
-      a: "Simply input your public channel handle (@YourChannel). We utilize public YouTube feeds to audit your list of links without requiring credentials.",
+      a: "Simply input your public channel handle (@YourChannel). You can choose how many recent videos to scan — Pro users can scan up to 200 videos per request.",
     },
     {
       q: "Is scanned page content kept private?",
       a: "We only parse hyperlinks embedded within the pages you request to audit. We never index private metadata, login parameters, or user data.",
+    },
+    {
+      q: "What is the difference between the plans?",
+      a: "Free users get 5 YouTube videos per scan. Starter gets 20 videos. Pro & Agency unlock up to 200 videos, unlimited sites, and AI replacement suggestions.",
     },
   ];
 
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="py-28 bg-[#09090b]">
+    <section id="faq" className="py-28" style={{ background: "var(--bg-primary)" }}>
       <div className="max-w-3xl mx-auto px-6">
-        <h2 className="text-3xl font-extrabold tracking-tight text-center mb-16 text-white">
-          Frequently asked questions
-        </h2>
+        <div className="text-center mb-14">
+          <h2 className="text-3xl font-extrabold tracking-tight mb-3" style={{ color: "var(--text-primary)" }}>
+            Frequently asked questions
+          </h2>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Everything you need to know about LinkGuardian.AI</p>
+        </div>
         <div className="space-y-3">
           {faqs.map((f, i) => (
             <div
               key={i}
-              className="bg-[#0c0c0e] border border-zinc-800/80 rounded-xl overflow-hidden transition-all duration-200"
+              className="rounded-2xl overflow-hidden transition-all duration-200"
+              style={{
+                background: "var(--bg-card)",
+                border: open === i ? "1.5px solid var(--border-strong)" : "1.5px solid var(--border-card)",
+                boxShadow: open === i ? "var(--shadow-md)" : "var(--shadow-card)",
+              }}
             >
               <button
-                className="w-full text-left px-6 py-4.5 flex items-center justify-between gap-4 font-semibold text-sm text-white"
+                className="w-full text-left px-6 py-4 flex items-center justify-between gap-4 font-semibold text-sm"
                 onClick={() => setOpen(open === i ? null : i)}
+                style={{ color: "var(--text-primary)" }}
               >
                 <span>{f.q}</span>
-                <span className={cn("text-zinc-500 transition-transform duration-200 text-lg", open === i ? "rotate-45" : "")}>+</span>
+                <span
+                  className={cn("transition-transform duration-200 text-xl shrink-0 font-light")}
+                  style={{ color: "var(--accent)", transform: open === i ? "rotate(45deg)" : "rotate(0)" }}
+                >
+                  +
+                </span>
               </button>
               {open === i && (
-                <div className="px-6 pb-5 text-xs text-zinc-400 leading-relaxed border-t border-zinc-900/50 pt-3 animate-fadeIn">
+                <div
+                  className="px-6 pb-5 text-xs leading-relaxed border-t pt-3 animate-fadeIn"
+                  style={{ color: "var(--text-secondary)", borderColor: "var(--border-color)" }}
+                >
                   {f.a}
                 </div>
               )}
@@ -501,31 +649,48 @@ function FAQ() {
   );
 }
 
+// ─── CTA ──────────────────────────────────────────────────────────────────────
 function CTA() {
   return (
-    <section className="py-24 bg-[#09090b] border-t border-zinc-900">
+    <section
+      className="py-24 border-t"
+      style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)" }}
+    >
       <div className="max-w-4xl mx-auto px-6 text-center">
-        <div className="relative bg-zinc-950/50 border border-zinc-800/80 rounded-3xl p-12 overflow-hidden">
+        <div
+          className="relative rounded-3xl p-12 md:p-16 overflow-hidden"
+          style={{
+            background: "var(--bg-card-glass)",
+            backdropFilter: "blur(20px)",
+            border: "1.5px solid var(--border-card)",
+            boxShadow: "var(--shadow-xl)",
+          }}
+        >
+          {/* Glow orbs */}
           <div
-            className="absolute -top-24 -left-24 w-80 h-80 rounded-full blur-[120px] opacity-15 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 80%)" }}
+            className="absolute -top-20 -right-20 w-64 h-64 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(108,71,255,0.15) 0%, transparent 70%)", filter: "blur(40px)" }}
+          />
+          <div
+            className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(156,111,255,0.12) 0%, transparent 70%)", filter: "blur(30px)" }}
           />
           <div className="relative z-10">
-            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4 text-white">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4" style={{ color: "var(--text-primary)" }}>
               Audit your link health.
             </h2>
-            <p className="text-zinc-400 mb-8 max-w-md mx-auto text-xs md:text-sm">
-              Get started with 3 free scans daily. Install our extension in seconds, no configuration or signup required.
+            <p className="mb-8 max-w-md mx-auto text-sm" style={{ color: "var(--text-secondary)" }}>
+              Get started with 3 free scans daily. Install our extension in seconds — no configuration or signup required.
             </p>
             <a
               href="https://chromewebstore.google.com"
               target="_blank"
-              className="inline-flex items-center gap-2 bg-white text-zinc-950 font-semibold px-8 py-4.5 rounded-xl text-xs hover:bg-zinc-200 transition-all hover:-translate-y-0.5 shadow-md shadow-white/5"
+              className="btn-primary px-10 py-4 text-sm"
             >
               Add Extension to Chrome
               {Icons.arrowRight()}
             </a>
-            <div className="mt-4 text-[10px] text-zinc-500">
+            <div className="mt-4 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
               No credit card required. Start scanning immediately.
             </div>
           </div>
@@ -535,13 +700,14 @@ function CTA() {
   );
 }
 
+// ─── Plans Loader ─────────────────────────────────────────────────────────────
 const FALLBACK_PLANS: Plan[] = [
   {
     id: "starter",
     name: "Starter",
     price_inr: 499,
     price_usd: 6,
-    features: ["50 link scans/day", "Chrome extension access", "Basic broken link detection", "Email alerts", "1 website monitored"],
+    features: ["50 link scans/day", "Chrome extension access", "Basic broken link detection", "Email alerts", "1 website monitored", "Scan up to 20 YouTube videos"],
     cta: "Start Free Trial",
   },
   {
@@ -549,7 +715,7 @@ const FALLBACK_PLANS: Plan[] = [
     name: "Pro",
     price_inr: 999,
     price_usd: 12,
-    features: ["Unlimited scans", "YouTube channel scanner", "AI replacement suggestions", "Amazon out-of-stock detection", "Weekly auto-monitoring", "5 sites + 3 channels"],
+    features: ["Unlimited scans", "YouTube channel scanner (200 videos)", "AI replacement suggestions", "Amazon out-of-stock detection", "Weekly auto-monitoring", "5 sites + 3 channels", "WhatsApp/Email alerts"],
     cta: "Get Pro",
     popular: true,
   },
@@ -571,11 +737,7 @@ function PlansLoader() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     fetch(`${apiUrl}/api/plans`)
       .then((r) => r.json())
-      .then((d) => {
-        if (d.plans) {
-          setPlans(d.plans);
-        }
-      })
+      .then((d) => { if (d.plans) setPlans(d.plans); })
       .catch((err) => log.warn("Fallback pricing loaded:", err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -584,15 +746,19 @@ function PlansLoader() {
     return (
       <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto px-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="rounded-2xl p-6.5 border border-zinc-800 bg-[#0c0c0e] animate-pulse flex flex-col justify-between">
+          <div
+            key={i}
+            className="rounded-2xl p-6 flex flex-col justify-between"
+            style={{ background: "var(--bg-card)", border: "1.5px solid var(--border-card)" }}
+          >
             <div className="space-y-4">
-              <div className="h-4 w-16 bg-zinc-800 rounded" />
-              <div className="h-8 w-24 bg-zinc-800 rounded" />
+              <div className="h-4 w-16 skeleton" />
+              <div className="h-8 w-24 skeleton" />
               <div className="space-y-2 pt-4">
-                {[1, 2, 3, 4].map((j) => (<div key={j} className="h-3 bg-zinc-800 rounded w-full" />))}
+                {[1, 2, 3, 4].map((j) => <div key={j} className="h-3 skeleton w-full" />)}
               </div>
             </div>
-            <div className="h-10 bg-zinc-850 rounded-xl mt-8" />
+            <div className="h-10 skeleton rounded-xl mt-8" />
           </div>
         ))}
       </div>
@@ -602,26 +768,38 @@ function PlansLoader() {
   return <PricingSection plans={plans} />;
 }
 
+// ─── Home Page ────────────────────────────────────────────────────────────────
 export default function Home() {
   return (
-    <main className="bg-[#09090b] text-zinc-100 min-h-screen">
+    <main style={{ background: "var(--bg-primary)", color: "var(--text-primary)", minHeight: "100vh" }}>
       <NavBar />
       <Hero />
       <PainSection />
       <FeaturesSection />
-      <section id="pricing" className="py-28 bg-[#09090b]">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4 text-white">
+      <section id="pricing" className="py-28" style={{ background: "var(--bg-primary)" }}>
+        <div className="text-center mb-14">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-4 text-[11px] font-bold tracking-widest uppercase"
+            style={{ background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--border-card)" }}
+          >
+            Pricing
+          </div>
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-3" style={{ color: "var(--text-primary)" }}>
             Simple, honest pricing.
           </h2>
-          <p className="text-zinc-400 text-sm">Find one broken high-commission link, and it pays for itself.</p>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            Find one broken high-commission link, and it pays for itself.
+          </p>
         </div>
         <PlansLoader />
       </section>
       <FAQ />
       <CTA />
-      <footer className="border-t border-zinc-900 py-10 text-center text-xs text-zinc-650 bg-[#09090b]">
-        © 2026 ExpireLinkX. Protecting affiliate publishers and creators.
+      <footer
+        className="border-t py-10 text-center text-xs"
+        style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: "var(--text-tertiary)" }}
+      >
+        © 2026 LinkGuardian.AI — Protecting affiliate publishers and creators worldwide.
       </footer>
     </main>
   );

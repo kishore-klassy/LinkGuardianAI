@@ -11,8 +11,16 @@ import os
 import stripe
 from datetime import datetime
 import json
+from supabase import create_client, Client
 
 app = FastAPI(title="LinkGuardian AI API", version="1.0.0")
+
+# Initialize Supabase client
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_ANON_KEY", ""))
+supabase_client: Client = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +42,7 @@ class LinkCheckRequest(BaseModel):
 class YouTubeRequest(BaseModel):
     channel_handle: str   # e.g. @TechReviews or channel URL
     user_id: Optional[str] = None
+    max_videos: Optional[int] = 50  # Plan-gated: Free=5, Starter=20, Pro=200
 
 class LinkResult(BaseModel):
     url: str
@@ -45,6 +54,22 @@ class LinkResult(BaseModel):
     error: Optional[str]
     ai_suggestion: Optional[str]
     estimated_loss: Optional[str]
+
+# ─── Auth Helper ──────────────────────────────────────────────────────────────
+
+async def get_user_id(authorization: str = Header(None)) -> str:
+    """Verify Supabase JWT and return user ID, or raise 401."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    token = authorization.split(" ")[1]
+    if not supabase_client:
+        # Fallback for local testing without DB
+        return "mock_user_id"
+    try:
+        user_response = supabase_client.auth.get_user(token)
+        return user_response.user.id
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -282,6 +307,22 @@ async def check_links(request: LinkCheckRequest):
 
     total_estimated_loss = len(broken) * 500  # Conservative estimate in INR
 
+    # Save to DB if user_id is provided and Supabase is configured
+    if request.user_id and supabase_client:
+        try:
+            supabase_client.table("scans").insert({
+                "user_id": request.user_id,
+                "page_url": request.page_url,
+                "total_links": len(valid_results),
+                "broken_count": len(broken),
+                "ok_count": len(ok),
+                "redirect_count": len(redirects),
+                "timeout_count": len([r for r in valid_results if r.status == "timeout"]),
+                "estimated_loss": total_estimated_loss
+            }).execute()
+        except Exception as e:
+            print(f"Error saving scan to DB: {e}")
+
     return {
         "summary": {
             "total": len(valid_results),
@@ -370,19 +411,34 @@ async def check_youtube_channel(request: YouTubeRequest):
         detail = r2.json()
         uploads_playlist = detail["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
-        # Fetch up to 50 recent videos
-        playlist_url = (
-            f"https://www.googleapis.com/youtube/v3/playlistItems"
-            f"?part=snippet&playlistId={uploads_playlist}&maxResults=50&key={yt_api_key}"
-        )
-        r3 = await client.get(playlist_url)
-        playlist_data = r3.json()
+        # Fetch up to max_videos recent videos (plan-gated), handling pagination for >50
+        max_videos_to_fetch = min(request.max_videos or 50, 200)  # Cap at 200
+        
+        playlist_items = []
+        next_page_token = ""
+        
+        while len(playlist_items) < max_videos_to_fetch:
+            fetch_count = min(50, max_videos_to_fetch - len(playlist_items))
+            page_token_param = f"&pageToken={next_page_token}" if next_page_token else ""
+            playlist_url = (
+                f"https://www.googleapis.com/youtube/v3/playlistItems"
+                f"?part=snippet&playlistId={uploads_playlist}&maxResults={fetch_count}{page_token_param}&key={yt_api_key}"
+            )
+            r3 = await client.get(playlist_url)
+            playlist_data = r3.json()
+            items = playlist_data.get("items", [])
+            if not items:
+                break
+            playlist_items.extend(items)
+            next_page_token = playlist_data.get("nextPageToken")
+            if not next_page_token:
+                break
 
         videos = []
         all_links = []
         url_pattern = re.compile(r'https?://[^\s\)\]\>\"\']+')
 
-        for item in playlist_data.get("items", []):
+        for item in playlist_items:
             snippet = item["snippet"]
             video_id = snippet["resourceId"]["videoId"]
             title = snippet["title"]
@@ -415,21 +471,55 @@ async def check_youtube_channel(request: YouTubeRequest):
             limits=httpx.Limits(max_connections=20),
             timeout=httpx.Timeout(12.0)
         ) as link_client:
-            tasks = [check_single_link(link_client, link) for link in all_links[:200]]
+            tasks = [check_single_link(link_client, link) for link in all_links[:2000]]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
         valid_results = [r for r in results if isinstance(r, LinkResult)]
         broken = [r for r in valid_results if r.status in ("broken", "out_of_stock")]
+        ok_links = [r for r in valid_results if r.status == "ok"]
+        redirect_links = [r for r in valid_results if r.status == "redirect"]
+        timeout_links = [r for r in valid_results if r.status == "timeout"]
         broken = await get_ai_suggestions(broken)
+
+        # Helper: find source video for a URL
+        def find_video(url: str):
+            for l in all_links:
+                if l["url"] == url:
+                    return l.get("video_id", "unknown"), l.get("video_title", "Unknown")
+            return "unknown", "Unknown"
 
         # Group broken links by video
         broken_by_video = {}
         for r in broken:
-            video_id = next((l["video_id"] for l in all_links if l["url"] == r.url), "unknown")
-            video_title = next((l["video_title"] for l in all_links if l["url"] == r.url), "Unknown")
-            if video_id not in broken_by_video:
-                broken_by_video[video_id] = {"title": video_title, "broken_links": []}
-            broken_by_video[video_id]["broken_links"].append(r.dict())
+            vid_id, vid_title = find_video(r.url)
+            if vid_id not in broken_by_video:
+                broken_by_video[vid_id] = {"title": vid_title, "broken_links": []}
+            broken_by_video[vid_id]["broken_links"].append(r.dict())
+
+        # Build all-links-by-video for complete table
+        all_by_video = {}
+        for r in valid_results:
+            vid_id, vid_title = find_video(r.url)
+            if vid_id not in all_by_video:
+                all_by_video[vid_id] = {"title": vid_title, "links": []}
+            all_by_video[vid_id]["links"].append(r.dict())
+
+        # Save to DB if user_id is provided and Supabase is configured
+        total_estimated_loss = len(broken) * 800
+        if request.user_id and supabase_client:
+            try:
+                supabase_client.table("scans").insert({
+                    "user_id": request.user_id,
+                    "page_url": f"https://youtube.com/{channel_handle}",
+                    "total_links": len(valid_results),
+                    "broken_count": len(broken),
+                    "ok_count": len(ok_links),
+                    "redirect_count": len(redirect_links),
+                    "timeout_count": len(timeout_links),
+                    "estimated_loss": total_estimated_loss
+                }).execute()
+            except Exception as e:
+                print(f"Error saving youtube scan to DB: {e}")
 
         return {
             "channel": {"id": channel_id, "name": channel_name, "handle": channel_handle},
@@ -437,9 +527,13 @@ async def check_youtube_channel(request: YouTubeRequest):
                 "videos_scanned": len(videos),
                 "total_links_checked": len(valid_results),
                 "broken_links": len(broken),
-                "estimated_monthly_loss_inr": len(broken) * 800,
+                "ok_links": len(ok_links),
+                "redirect_links": len(redirect_links),
+                "timeout_links": len(timeout_links),
+                "estimated_monthly_loss_inr": total_estimated_loss,
             },
             "broken_by_video": broken_by_video,
+            "all_by_video": all_by_video,
             "scanned_at": datetime.utcnow().isoformat(),
         }
 
@@ -539,3 +633,103 @@ async def get_plans():
             },
         ]
     }
+
+# ─── User Dashboard DB Endpoints ──────────────────────────────────────────
+
+@app.get("/api/users/stats")
+async def get_user_stats(user_id: str = Depends(get_user_id)):
+    if not supabase_client or user_id == "mock_user_id":
+        return {
+            "total_scans": 12, "total_links_checked": 342, "total_broken_found": 17,
+            "estimated_monthly_loss_inr": 8500, "plan": "pro", "monitored_sites_count": 2,
+            "last_scan_at": datetime.utcnow().isoformat()
+        }
+    
+    # Fetch real stats from DB
+    try:
+        user_res = supabase_client.table("users").select("plan").eq("id", user_id).execute()
+        plan = user_res.data[0]["plan"] if user_res.data else "free"
+        
+        scans_res = supabase_client.table("scans").select("*").eq("user_id", user_id).execute()
+        sites_res = supabase_client.table("monitored_sites").select("id", count="exact").eq("user_id", user_id).execute()
+        
+        scans = scans_res.data
+        sites_count = sites_res.count if sites_res.count is not None else 0
+        
+        total_scans = len(scans)
+        total_links = sum(s.get("total_links", 0) for s in scans)
+        total_broken = sum(s.get("broken_count", 0) for s in scans)
+        est_loss = sum(s.get("estimated_loss", 0) for s in scans)
+        last_scan = max([s.get("created_at") for s in scans]) if scans else None
+
+        return {
+            "total_scans": total_scans,
+            "total_links_checked": total_links,
+            "total_broken_found": total_broken,
+            "estimated_monthly_loss_inr": est_loss,
+            "plan": plan,
+            "monitored_sites_count": sites_count,
+            "last_scan_at": last_scan
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users/scans")
+async def get_user_scans(user_id: str = Depends(get_user_id)):
+    if not supabase_client or user_id == "mock_user_id":
+        return {
+            "total": 0,
+            "scans": []
+        }
+    try:
+        res = supabase_client.table("scans").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(50).execute()
+        return {
+            "total": len(res.data),
+            "scans": res.data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/users/monitored-sites")
+async def add_monitored_site(data: dict, user_id: str = Depends(get_user_id)):
+    if not supabase_client or user_id == "mock_user_id":
+        return {"status": "success"}
+    try:
+        supabase_client.table("monitored_sites").insert({
+            "user_id": user_id,
+            "url": data.get("url"),
+            "name": data.get("name")
+        }).execute()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users/monitored-sites")
+async def get_monitored_sites(user_id: str = Depends(get_user_id)):
+    if not supabase_client or user_id == "mock_user_id":
+        return {"sites": []}
+    try:
+        res = supabase_client.table("monitored_sites").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+        return {"sites": res.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/users/monitored-sites/{site_id}")
+async def delete_monitored_site(site_id: str, user_id: str = Depends(get_user_id)):
+    if not supabase_client or user_id == "mock_user_id":
+        return {"status": "success"}
+    try:
+        supabase_client.table("monitored_sites").delete().eq("id", site_id).eq("user_id", user_id).execute()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/users/settings")
+async def update_settings(data: dict, user_id: str = Depends(get_user_id)):
+    if not supabase_client or user_id == "mock_user_id":
+        return {"status": "success"}
+    try:
+        supabase_client.table("users").update(data).eq("id", user_id).execute()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

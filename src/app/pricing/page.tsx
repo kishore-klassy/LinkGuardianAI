@@ -170,7 +170,7 @@ export default function PricingPage() {
         </div>
       </div>
       <footer className="border-t border-zinc-900 py-8 text-center text-xs text-zinc-650 bg-[#09090b]">
-        © 2026 ExpireLinkX. Protecting affiliate publishers and creators.
+        © 2026 LinkGuardian.AI. Protecting affiliate publishers and creators.
       </footer>
     </div>
   );
