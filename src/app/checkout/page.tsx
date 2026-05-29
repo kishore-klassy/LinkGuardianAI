@@ -5,14 +5,24 @@ import { getSession } from "@/lib/supabase";
 import { log } from "@/lib/utils";
 
 const PLAN_DETAILS: Record<string, { name: string; price: number }> = {
-  starter: { name: "Starter", price: 499 },
+  basic: { name: "Basic", price: 499 },
   pro: { name: "Pro", price: 999 },
-  agency: { name: "Agency", price: 2999 },
 };
+
+const loadRazorpay = () => new Promise((resolve) => {
+  if (document.getElementById("razorpay-js")) return resolve(true);
+  const script = document.createElement("script");
+  script.id = "razorpay-js";
+  script.src = "https://checkout.razorpay.com/v1/checkout.js";
+  script.onload = () => resolve(true);
+  script.onerror = () => resolve(false);
+  document.body.appendChild(script);
+});
 
 function CheckoutInner() {
   const searchParams = useSearchParams();
   const planId = searchParams?.get("plan") || "pro";
+  const billing = searchParams?.get("billing") || "monthly";
   const plan =
     (PLAN_DETAILS[planId as keyof typeof PLAN_DETAILS] ?? PLAN_DETAILS.pro) as {
       name: string;
@@ -23,16 +33,15 @@ function CheckoutInner() {
   const [error, setError] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [email, setEmail] = useState("");
+  const priceDisplay = billing === "annual" ? Math.round(plan.price * 12 * 0.8) : plan.price;
 
   useEffect(() => {
-    log.info(`Checkout page loaded: plan=${planId}`);
+    log.info(`Checkout page loaded: plan=${planId}, billing=${billing}`);
     getSession().then((session) => {
       if (session?.user?.email) {
         log.info(`User session found: ${session.user.email}`);
         setUserEmail(session.user.email);
         setEmail(session.user.email);
-      } else {
-        log.info("No user session — showing email input");
       }
     });
   }, []);
@@ -43,36 +52,82 @@ function CheckoutInner() {
     setError("");
 
     const session = await getSession();
-    if (!session && !email) {
-      log.warn("Checkout blocked: no email provided");
-      setError("Please sign in or provide an email to continue.");
+    if (!session?.user) {
+      setError("Please sign in to continue with checkout.");
+      setLoading(false);
+      setTimeout(() => { window.location.href = "/login"; }, 2000);
+      return;
+    }
+
+    const loaded = await loadRazorpay();
+    if (!loaded) {
+      setError("Payment system failed to load. Please check your internet connection.");
       setLoading(false);
       return;
     }
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      log.api("POST", `${apiUrl}/api/stripe/create-checkout`);
-      const res = await fetch(`${apiUrl}/api/stripe/create-checkout`, {
+      const res = await fetch(`${apiUrl}/api/payments/create-order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan: planId,
+          billing: billing,
           user_id: session?.user?.id || undefined,
           email: email || userEmail,
         }),
       });
       const data = await res.json();
-      if (data.checkout_url) {
-        log.success(`Redirecting to Stripe: ${data.checkout_url}`);
-        window.location.href = data.checkout_url;
-      } else {
-        log.error("Stripe checkout failed: no URL returned");
-        setError("Could not create checkout session.");
+      
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to create order");
       }
-    } catch (err) {
+
+      if (data.order_id && data.razorpay_key) {
+        const options = {
+          key: data.razorpay_key,
+          amount: data.amount,
+          currency: data.currency,
+          order_id: data.order_id,
+          name: "LinkGuardian.AI",
+          description: `${plan.name} Plan (${billing})`,
+          handler: async function (response: any) {
+            try {
+              const verifyRes = await fetch(`${apiUrl}/api/payments/verify`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ...response,
+                  user_id: session?.user?.id,
+                  plan: planId
+                })
+              });
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                 window.location.href = "/dashboard?success=true";
+              } else {
+                 setError("Payment verification failed");
+              }
+            } catch(e) {
+               setError("Verification network error");
+            }
+          },
+          prefill: { email: email || userEmail },
+          theme: { color: "#4f46e5" }
+        };
+        
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", function (response: any) {
+           setError(response.error.description);
+        });
+        rzp.open();
+      } else {
+        setError("Invalid response from payment gateway.");
+      }
+    } catch (err: any) {
       log.error("Checkout network error:", err);
-      setError("Network error. Please try again.");
+      setError(err.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -98,8 +153,8 @@ function CheckoutInner() {
             </div>
             <h2 className="text-xl font-bold text-white mb-2">{plan.name} Subscription</h2>
             <div className="flex items-baseline justify-center gap-1 mt-2">
-              <span className="text-3xl font-extrabold text-white">₹{plan.price}</span>
-              <span className="text-zinc-500 text-xs">/month</span>
+              <span className="text-3xl font-extrabold text-white">₹{priceDisplay}</span>
+              <span className="text-zinc-500 text-xs">/{billing === "annual" ? "year" : "month"}</span>
             </div>
           </div>
 
@@ -127,11 +182,11 @@ function CheckoutInner() {
             disabled={loading}
             className="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl text-xs disabled:opacity-50 hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/10"
           >
-            {loading ? "Redirecting to Stripe…" : `Subscribe Now`}
+            {loading ? "Processing..." : `Subscribe Now`}
           </button>
 
           <p className="text-center text-[10px] text-zinc-550 mt-5 leading-normal">
-            Secure checkout processed by Stripe.<br />7-day trial included. Cancel anytime in one-click.
+            Secure checkout processed by Razorpay.<br />Cancel anytime in one-click.
           </p>
         </div>
       </div>

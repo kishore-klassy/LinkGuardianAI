@@ -21,20 +21,54 @@ async def check_youtube_channel(request: YouTubeRequest):
         logger.logger.error("YouTube API key not configured")
         raise HTTPException(status_code=503, detail="YouTube API not configured")
 
-    channel_handle = request.channel_handle.strip().lstrip("@")
-    logger.log_youtube_start(channel_handle)
+    input_str = request.channel_handle.strip()
+    logger.log_youtube_start(input_str)
 
     async with httpx.AsyncClient(timeout=15.0) as client:
-        logger.logger.debug("Resolving channel handle: %s", channel_handle)
-        search_url = (
-            f"https://www.googleapis.com/youtube/v3/channels"
-            f"?part=id,snippet&forHandle={channel_handle}&key={yt_api_key}"
-        )
+        import urllib.parse as urlparse
+        channel_id = None
+        handle = None
+        
+        # Parse Video URLs
+        if "youtube.com/watch" in input_str:
+            parsed = urlparse.urlparse(input_str)
+            video_id = urlparse.parse_qs(parsed.query).get('v', [None])[0]
+            if video_id:
+                vid_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet&id={video_id}&key={yt_api_key}"
+                r_vid = await client.get(vid_url)
+                v_data = r_vid.json()
+                if v_data.get("items"):
+                    channel_id = v_data["items"][0]["snippet"]["channelId"]
+        elif "youtu.be/" in input_str:
+            video_id = input_str.split("youtu.be/")[1].split("?")[0]
+            if video_id:
+                vid_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet&id={video_id}&key={yt_api_key}"
+                r_vid = await client.get(vid_url)
+                v_data = r_vid.json()
+                if v_data.get("items"):
+                    channel_id = v_data["items"][0]["snippet"]["channelId"]
+        
+        # Parse Channel URLs
+        elif "youtube.com/channel/" in input_str:
+            channel_id = input_str.split("youtube.com/channel/")[1].split("/")[0].split("?")[0]
+        elif "youtube.com/@" in input_str:
+            handle = input_str.split("youtube.com/@")[1].split("/")[0].split("?")[0]
+        else:
+            handle = input_str.lstrip("@")
+
+        if not channel_id and not handle:
+             raise HTTPException(status_code=400, detail="Invalid YouTube URL or handle")
+
+        if handle:
+            search_url = f"https://www.googleapis.com/youtube/v3/channels?part=id,snippet&forHandle={handle}&key={yt_api_key}"
+        elif channel_id:
+            search_url = f"https://www.googleapis.com/youtube/v3/channels?part=id,snippet&id={channel_id}&key={yt_api_key}"
+
         r = await client.get(search_url)
         data = r.json()
 
         if not data.get("items"):
-            logger.logger.warning("Channel not found: %s", channel_handle)
+            logger.logger.warning("Channel not found: %s", input_str)
             raise HTTPException(status_code=404, detail="Channel not found")
 
         channel = data["items"][0]
@@ -171,7 +205,7 @@ async def check_youtube_channel(request: YouTubeRequest):
             }
             await save_scan_result(
                 request.user_id,
-                f"youtube.com/@{channel_handle}",
+                f"youtube.com/@{handle}",
                 db_summary,
                 [r.model_dump() for r in broken],
                 [r.model_dump() for r in ok_links],
@@ -185,7 +219,7 @@ async def check_youtube_channel(request: YouTubeRequest):
         "channel": {
             "id": channel_id,
             "name": channel_name,
-            "handle": channel_handle,
+            "handle": handle,
         },
         "summary": {
             "videos_scanned": len(videos),

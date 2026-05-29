@@ -1,7 +1,7 @@
 import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import links, youtube, stripe, plans, users
+from app.routers import links, youtube, payments, plans, users
 from app.logging_config import setup_logging, logger
 
 setup_logging()
@@ -47,7 +47,7 @@ async def log_requests(request: Request, call_next):
 
 app.include_router(links.router)
 app.include_router(youtube.router)
-app.include_router(stripe.router)
+app.include_router(payments.router)
 app.include_router(plans.router)
 app.include_router(users.router)
 
@@ -66,8 +66,8 @@ async def api_root():
             "/api/plans",
             "/api/check-links",
             "/api/check-youtube-channel",
-            "/api/stripe/create-checkout",
-            "/api/stripe/webhook",
+            "/api/payments/create-order",
+            "/api/payments/verify",
             "/docs",
             "/redoc",
         ],

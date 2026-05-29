@@ -34,7 +34,8 @@ class LinkResult(BaseModel):
 
 
 class CreateCheckoutRequest(BaseModel):
-    plan: str = "starter"
+    plan: str = "basic"
+    billing: str = "monthly"
     user_id: Optional[str] = None
     email: Optional[str] = None
 

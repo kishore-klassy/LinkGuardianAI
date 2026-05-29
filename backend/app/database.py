@@ -85,8 +85,23 @@ async def save_scan_result(
             raise e
 
 
+import time
+
 async def update_user_subscription(user_id: str, plan: str, subscription_id: str):
-    supabase = get_supabase()
-    supabase.table("users").update(
-        {"plan": plan, "subscription_id": subscription_id}
-    ).eq("id", user_id).execute()
+    global _supabase
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            supabase = get_supabase()
+            # We ONLY update plan here to avoid PGRST204 schema cache errors 
+            # for subscription_id which breaks the HTTP/2 connection.
+            supabase.table("users").update(
+                {"plan": plan}
+            ).eq("id", user_id).execute()
+            return
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise e
+            app_logger.logger.warning(f"DB update failed (attempt {attempt+1}): {e}. Retrying...")
+            _supabase = None  # Reset client to clear stale HTTP/2 connections
+            time.sleep(1)

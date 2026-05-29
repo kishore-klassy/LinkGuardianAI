@@ -14,19 +14,33 @@ interface Plan {
 
 const FALLBACK_PLANS: Plan[] = [
   {
-    id: "starter",
-    name: "Starter",
+    id: "free",
+    name: "Free",
+    price_inr: 0,
+    price_usd: 0,
+    features: [
+      "50 link scans/day",
+      "Manual scanning",
+      "Basic broken link detection",
+      "No email alerts",
+      "Scan up to 50 YouTube videos",
+    ],
+    cta: "Current Plan",
+  },
+  {
+    id: "basic",
+    name: "Basic",
     price_inr: 499,
     price_usd: 6,
     features: [
-      "50 link scans/day",
+      "Unlimited link scans",
       "Automated monitoring",
       "Basic broken link detection",
       "Email alerts",
       "1 website monitored",
-      "Scan up to 50 YouTube videos",
+      "Scan up to 100 YouTube videos",
     ],
-    cta: "Start Free Trial",
+    cta: "Start Basic",
   },
   {
     id: "pro",
@@ -34,7 +48,7 @@ const FALLBACK_PLANS: Plan[] = [
     price_inr: 999,
     price_usd: 12,
     features: [
-      "Unlimited link scans",
+      "Everything in Basic",
       "YouTube channel scanner",
       "AI replacement suggestions",
       "Amazon out-of-stock detection",
@@ -44,21 +58,6 @@ const FALLBACK_PLANS: Plan[] = [
     ],
     cta: "Get Pro",
     popular: true,
-  },
-  {
-    id: "agency",
-    name: "Agency",
-    price_inr: 2999,
-    price_usd: 36,
-    features: [
-      "Everything in Pro",
-      "Unlimited websites & channels",
-      "White-label reports",
-      "Team seats (5 users)",
-      "Priority support",
-      "API access",
-    ],
-    cta: "Contact Sales",
   },
 ];
 
