@@ -17,6 +17,42 @@ async def get_user_id(authorization: str = Header(None)) -> str:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+@router.post("/sync")
+async def sync_user(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing auth header")
+    token = authorization.split(" ")[1]
+    supabase = get_supabase()
+    
+    try:
+        r = supabase.auth.get_user(token)
+        user = r.user
+        user_id = user.id
+        email = user.email
+        full_name = user.user_metadata.get("full_name", "")
+        
+        # Check if exists
+        db_user_r = supabase.table("users").select("id").eq("id", user_id).maybe_single().execute()
+        if not db_user_r or not getattr(db_user_r, 'data', None):
+            supabase.table("users").insert({
+                "id": user_id,
+                "email": email,
+                "full_name": full_name,
+                "plan": "free"
+            }).execute()
+            logger.logger.info("Synchronized new user %s to DB", user_id)
+        else:
+            supabase.table("users").update({
+                "email": email,
+                "full_name": full_name
+            }).eq("id", user_id).execute()
+            
+        return {"status": "success", "user_id": user_id}
+    except Exception as e:
+        logger.logger.error("Error syncing user: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to sync user")
+
+
 @router.get("/me")
 async def get_me(authorization: str = Header(None)):
     user_id = await get_user_id(authorization)
@@ -109,6 +145,7 @@ async def add_monitored_site(data: dict, authorization: str = Header(None)):
     user_id = await get_user_id(authorization)
     url = data.get("url", "").strip()
     name = data.get("name", "").strip() or url
+    site_type = data.get("site_type", "website")
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
     supabase = get_supabase()
@@ -116,6 +153,7 @@ async def add_monitored_site(data: dict, authorization: str = Header(None)):
         "user_id": user_id,
         "url": url,
         "name": name,
+        "site_type": site_type,
     }).execute()
     return r.data[0] if r.data else {"ok": True}
 
@@ -155,3 +193,54 @@ async def get_settings(authorization: str = Header(None)):
             "theme": "dark",
         }
     return r.data
+
+
+@router.get("/notifications")
+async def get_notifications(authorization: str = Header(None)):
+    user_id = await get_user_id(authorization)
+    supabase = get_supabase()
+    r = supabase.table("notifications").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(50).execute()
+    return {"notifications": r.data or []}
+
+@router.put("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, authorization: str = Header(None)):
+    user_id = await get_user_id(authorization)
+    supabase = get_supabase()
+    supabase.table("notifications").update({"is_read": True}).eq("id", notification_id).eq("user_id", user_id).execute()
+    return {"ok": True}
+
+@router.delete("/notifications/{notification_id}")
+async def delete_notification(notification_id: str, authorization: str = Header(None)):
+    user_id = await get_user_id(authorization)
+    supabase = get_supabase()
+    supabase.table("notifications").delete().eq("id", notification_id).eq("user_id", user_id).execute()
+    return {"ok": True}
+
+@router.post("/support")
+async def submit_support_ticket(data: dict, authorization: str = Header(None)):
+    user_id = None
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            user_id = await get_user_id(authorization)
+        except Exception:
+            pass
+            
+    topic = data.get("topic", "").strip()
+    message = data.get("message", "").strip()
+    
+    if not topic or not message:
+        raise HTTPException(status_code=400, detail="Topic and message are required")
+        
+    supabase = get_supabase()
+    
+    try:
+        supabase.table("support_tickets").insert({
+            "user_id": user_id,
+            "topic": topic,
+            "message": message,
+            "status": "open"
+        }).execute()
+        return {"ok": True}
+    except Exception as e:
+        logger.logger.error("Failed to create support ticket: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to submit support ticket")

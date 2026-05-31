@@ -1,9 +1,10 @@
 import asyncio
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from app.models.schemas import LinkCheckRequest, LinkResult
 from app.services.link_checker import check_single_link
 from app.services.ai_suggestions import get_ai_suggestions
+from app.services.limits import check_scan_limits
 from app.database import save_scan_result
 from app.logging_config import logger
 
@@ -11,9 +12,12 @@ router = APIRouter(prefix="/api", tags=["links"])
 
 
 @router.post("/check-links")
-async def check_links(request: LinkCheckRequest):
-    links = request.links[:100]
-    logger.log_scan_start(len(links), request.page_url)
+async def check_links(request_data: LinkCheckRequest, request: Request):
+    ip_address = request.client.host if request.client else None
+    check_scan_limits(request_data.user_id, request_data.device_id, ip_address)
+
+    links = request_data.links[:100]
+    logger.log_scan_start(len(links), request_data.page_url)
 
     async with httpx.AsyncClient(
         limits=httpx.Limits(max_connections=30, max_keepalive_connections=10),
@@ -48,7 +52,7 @@ async def check_links(request: LinkCheckRequest):
             "unverifiable": len(unverifiable),
             "redirects": len(redirects),
             "estimated_monthly_loss_inr": total_estimated_loss,
-            "scanned_url": request.page_url,
+            "scanned_url": request_data.page_url,
         },
         "broken_links": [r.model_dump() for r in broken],
         "ok_links": [r.model_dump() for r in ok],
@@ -56,18 +60,19 @@ async def check_links(request: LinkCheckRequest):
         "redirect_links": [r.model_dump() for r in redirects],
     }
 
-    if request.user_id:
-        try:
-            await save_scan_result(
-                request.user_id, request.page_url,
-                response["summary"],
-                response["broken_links"],
-                response["ok_links"],
-                response["redirect_links"],
-                response.get("unverifiable_links"),
-            )
-            logger.logger.debug("Saved scan result to DB for user=%s", request.user_id)
-        except Exception as e:
-            logger.logger.warning("Failed to save scan to DB: %s", e)
+    try:
+        await save_scan_result(
+            request_data.user_id, request_data.page_url,
+            response["summary"],
+            response["broken_links"],
+            response["ok_links"],
+            response["redirect_links"],
+            response.get("unverifiable_links"),
+            device_id=request_data.device_id,
+            ip_address=ip_address,
+        )
+        logger.logger.debug("Saved scan result to DB for user=%s", request_data.user_id)
+    except Exception as e:
+        logger.logger.warning("Failed to save scan to DB: %s", e)
 
     return response

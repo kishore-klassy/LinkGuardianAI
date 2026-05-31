@@ -2,7 +2,8 @@ import os
 import re
 import asyncio
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from app.services.limits import check_scan_limits
 from app.models.schemas import YouTubeRequest, LinkResult
 from app.services.link_checker import check_single_link
 from app.services.ai_suggestions import get_ai_suggestions
@@ -15,13 +16,15 @@ URL_PATTERN = re.compile(r"https?://[^\s\)\]\>\"\']+")
 
 
 @router.post("/check-youtube-channel")
-async def check_youtube_channel(request: YouTubeRequest):
+async def check_youtube_channel(request_data: YouTubeRequest, request: Request):
+    ip_address = request.client.host if request.client else None
+    check_scan_limits(request_data.user_id, request_data.device_id, ip_address)
     yt_api_key = os.getenv("YOUTUBE_API_KEY", "")
     if not yt_api_key:
         logger.logger.error("YouTube API key not configured")
         raise HTTPException(status_code=503, detail="YouTube API not configured")
 
-    input_str = request.channel_handle.strip()
+    input_str = request_data.channel_handle.strip()
     logger.log_youtube_start(input_str)
 
     async with httpx.AsyncClient(timeout=15.0) as client:
@@ -89,7 +92,7 @@ async def check_youtube_channel(request: YouTubeRequest):
         all_links = []
         seen_urls = set()
         page_token = ""
-        max_vids = request.max_videos if request.max_videos else 5
+        max_vids = request_data.max_videos if request_data.max_videos else 5
 
         while len(videos) < max_vids:
             fetch_count = min(max_vids - len(videos), 50)
@@ -190,30 +193,31 @@ async def check_youtube_channel(request: YouTubeRequest):
     loss = len(broken) * 800
     logger.log_youtube_result(len(videos), len(valid_results), len(broken), loss)
 
-    if request.user_id:
-        try:
-            ok_links = [r for r in valid_results if r.status == "ok"]
-            redirect_links = [r for r in valid_results if r.status == "redirect"]
-            
-            db_summary = {
-                "total": len(valid_results),
-                "broken": len(broken),
-                "ok": len(ok_links),
-                "unverifiable": len(unverifiable),
-                "redirects": len(redirect_links),
-                "estimated_monthly_loss_inr": loss,
-            }
-            await save_scan_result(
-                request.user_id,
-                f"youtube.com/@{handle}",
-                db_summary,
-                [r.model_dump() for r in broken],
-                [r.model_dump() for r in ok_links],
-                [r.model_dump() for r in redirect_links],
-                [r.model_dump() for r in unverifiable]
-            )
-        except Exception as e:
-            logger.logger.warning("Failed to save youtube scan to DB: %s", e)
+    try:
+        ok_links = [r for r in valid_results if r.status == "ok"]
+        redirect_links = [r for r in valid_results if r.status == "redirect"]
+        
+        db_summary = {
+            "total": len(valid_results),
+            "broken": len(broken),
+            "ok": len(ok_links),
+            "unverifiable": len(unverifiable),
+            "redirects": len(redirect_links),
+            "estimated_monthly_loss_inr": loss,
+        }
+        await save_scan_result(
+            request_data.user_id,
+            f"youtube.com/@{handle}",
+            db_summary,
+            [r.model_dump() for r in broken],
+            [r.model_dump() for r in ok_links],
+            [r.model_dump() for r in redirect_links],
+            [r.model_dump() for r in unverifiable],
+            device_id=request_data.device_id,
+            ip_address=ip_address
+        )
+    except Exception as e:
+        logger.logger.warning("Failed to save youtube scan to DB: %s", e)
 
     return {
         "channel": {

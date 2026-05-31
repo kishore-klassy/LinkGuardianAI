@@ -51,6 +51,8 @@ async def save_scan_result(
     ok_links: list,
     redirect_links: list,
     unverifiable_links: list | None = None,
+    device_id: str | None = None,
+    ip_address: str | None = None,
 ):
     ensure_user_exists(user_id)
     app_logger.logger.info(f"==== DB INSERT INITIATED: save_scan_result for user_id={user_id} ====")
@@ -69,6 +71,8 @@ async def save_scan_result(
         "ok_links_data": ok_links,
         "unverifiable_links_data": unverifiable_links or [],
         "redirect_links_data": redirect_links,
+        "device_id": device_id,
+        "ip_address": ip_address,
     }
     app_logger.logger.debug(f"Prepared Data Payload for 'scans' table: {data}")
     

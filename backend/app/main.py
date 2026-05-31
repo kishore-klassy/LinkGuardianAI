@@ -6,11 +6,23 @@ from app.logging_config import setup_logging, logger
 
 setup_logging()
 
+from contextlib import asynccontextmanager
+from app.scheduler import start_scheduler, stop_scheduler
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    start_scheduler()
+    yield
+    # Shutdown
+    stop_scheduler()
+
 app = FastAPI(
     title="ExpireLinkX API",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Change this block in your app

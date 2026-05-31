@@ -12,11 +12,13 @@ class LinkCheckRequest(BaseModel):
     links: list[LinkCheckItem]
     page_url: str
     user_id: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class YouTubeRequest(BaseModel):
     channel_handle: str
     user_id: Optional[str] = None
+    device_id: Optional[str] = None
     max_videos: Optional[int] = 5
 
 
