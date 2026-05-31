@@ -10,7 +10,8 @@ import { ThemeToggle } from "@/lib/components/ThemeToggle";
 interface UserProfile { id: string; email?: string; full_name?: string; plan: string; }
 interface DashboardStats { total_scans: number; total_links_checked: number; total_broken_found: number; estimated_monthly_loss_inr: number; plan: string; monitored_sites_count: number; last_scan_at: string | null; }
 interface ScanRecord { id: string; created_at: string; page_url: string; total_links: number; broken_count: number; ok_count: number; redirect_count: number; unverifiable_count?: number; estimated_loss: number; broken_links_data?: any[]; ok_links_data?: any[]; unverifiable_links_data?: any[]; redirect_links_data?: any[]; }
-interface MonitoredSite { id: string; url: string; name?: string; site_type: string; last_scanned_at: string | null; is_active: boolean; created_at: string; }
+interface MonitoredSite { id: string; url: string; name?: string; site_type: string; last_scanned_at: string | null; is_active: boolean; created_at: string; latest_stats?: { total_links: number; broken_count: number; ok_count: number }; }
+interface AppNotification { id: string; title: string; message: string; type: string; is_read: boolean; created_at: string; }
 interface UserSettings { email_alerts: boolean; weekly_report: boolean; whatsapp_alerts: boolean; }
 interface LinkResult { url: string; anchor_text: string; context: string; status: string; status_code: number | null; final_url: string | null; error: string | null; ai_suggestion: string | null; estimated_loss: string | null; }
 
@@ -18,12 +19,12 @@ interface LinkResult { url: string; anchor_text: string; context: string; status
 
 const S = {
   logo: () => (
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-      <rect width="26" height="26" rx="7" fill="url(#lg2)" />
-      <path d="M13 7.5L13 13L16 15.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="13" cy="13" r="5.5" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" />
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 rounded-lg shadow-sm">
+      <rect width="40" height="40" rx="9" fill="url(#premium-purple-grad)" />
+      <path d="M15 21a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M25 19a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
       <defs>
-        <linearGradient id="lg2" x1="0" y1="0" x2="26" y2="26">
+        <linearGradient id="premium-purple-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
           <stop stopColor="#6C47FF" />
           <stop offset="1" stopColor="#9C6FFF" />
         </linearGradient>
@@ -75,7 +76,9 @@ const S = {
   shield: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>),
   filter: () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>),
   search: () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>),
+    bell: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>),
   zap: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>),
+  support: (a?: boolean) => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={a ? "var(--accent)" : "currentColor"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>),
 };
 
 // ─── Toast System ─────────────────────────────────────────────────────────────
@@ -839,6 +842,22 @@ export default function Dashboard() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showAddSite, setShowAddSite] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [siteType, setSiteType] = useState<"website" | "youtube">("website");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  
+  // Robust System Fingerprinting
+  const [deviceId, setDeviceId] = useState<string>("");
+  useEffect(() => {
+    let id = localStorage.getItem("lx_device_id");
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem("lx_device_id", id);
+    }
+    setDeviceId(id);
+  }, []);
 
   // Scan state
   const [inputMode, setInputMode] = useState<"url" | "youtube">("url");
@@ -874,12 +893,16 @@ export default function Dashboard() {
   }, []);
   async function loadData(token: string) {
     try {
-      const [sr, scr] = await Promise.all([
+      const [sr, scr, notifRes, sitesRes] = await Promise.all([
         fetch(`${API}/api/users/stats`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API}/api/users/scans?page=1&per_page=20`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/api/users/notifications`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/api/users/monitored-sites`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       if (sr.ok) { const d = await sr.json(); setStats(d); setUser(p => p ? { ...p, plan: d.plan } : p); }
       if (scr.ok) { const d = await scr.json(); setScans(d.scans); setScanTotal(d.total); }
+      if (notifRes.ok) { const d = await notifRes.json(); setNotifications(d.notifications); }
+      if (sitesRes.ok) { const d = await sitesRes.json(); setSites(d.sites); }
     } catch (e) { log.error("Failed to load user data", e); } finally { setLoading(false); }
   }
 
@@ -907,13 +930,18 @@ export default function Dashboard() {
       const token = await getToken();
       const endpoint = inputMode === "youtube" ? "/api/check-youtube-channel" : "/api/check-links";
       const body = inputMode === "youtube"
-        ? JSON.stringify({ channel_handle: scanInput, max_videos: videoCount, user_id: user?.id })
-        : JSON.stringify({ links: [{ url: scanInput, anchor_text: scanInput, context: "" }], page_url: scanInput, user_id: user?.id });
+        ? JSON.stringify({ channel_handle: scanInput, max_videos: videoCount, user_id: user?.id, device_id: deviceId })
+        : JSON.stringify({ links: [{ url: scanInput, anchor_text: scanInput, context: "" }], page_url: scanInput, user_id: user?.id, device_id: deviceId });
       const res = await fetch(`${API}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body,
       });
+      if (res.status === 402) {
+        setShowUpgradeModal(true);
+        setScanning(false);
+        return;
+      }
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       if (inputMode === "youtube") {
@@ -953,7 +981,7 @@ export default function Dashboard() {
       await fetch(`${API}/api/users/monitored-sites`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ url: siteUrl, name: siteName || siteUrl }),
+        body: JSON.stringify({ url: siteUrl, name: siteName || siteUrl, site_type: siteType }),
       });
       const r = await fetch(`${API}/api/users/monitored-sites`, { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) { const d = await r.json(); setSites(d.sites); }
@@ -978,6 +1006,7 @@ export default function Dashboard() {
     { id: "scanner",  icon: S.scan,    label: "Scanner" },
     { id: "history",  icon: S.history, label: "History" },
     { id: "sites",    icon: S.globe,   label: "Sites" },
+    { id: "support",  icon: S.support, label: "Support" },
     { id: "settings", icon: S.gear,    label: "Settings" },
   ];
 
@@ -1020,6 +1049,104 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex" style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {/* ─── Marketing Upgrade Modal ─────────────────────────────────────── */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
+          {/* Animated Backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity" onClick={() => setShowUpgradeModal(false)} />
+          
+          {/* Modal Container */}
+          <div 
+            className="relative w-full max-w-3xl rounded-3xl animate-scaleIn shadow-[0_0_80px_rgba(108,71,255,0.15)] group" 
+            style={{ 
+              background: "var(--bg-card)", 
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            {/* Animated Glow Orbs */}
+            <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+              <div className="absolute -top-40 -left-40 w-80 h-80 rounded-full mix-blend-screen animate-pulse" style={{ background: "radial-gradient(circle, rgba(108,71,255,0.3) 0%, transparent 70%)", filter: "blur(50px)" }} />
+              <div className="absolute -bottom-40 -right-40 w-80 h-80 rounded-full mix-blend-screen animate-pulse" style={{ background: "radial-gradient(circle, rgba(255,71,155,0.2) 0%, transparent 70%)", filter: "blur(50px)", animationDelay: "1s" }} />
+            </div>
+
+            {/* Discount Badge - Outside the overflow-hidden layer */}
+            <div className="absolute -top-4 right-4 md:-top-6 md:right-8 transform rotate-12 bg-gradient-to-r from-[#FF479B] to-[#FF7054] text-white text-[10px] font-extrabold uppercase tracking-widest px-4 py-2 rounded-full shadow-[0_4px_20px_rgba(255,71,155,0.4)] z-30 animate-bounce">
+              50% OFF TODAY
+            </div>
+
+            <div className="relative z-10 flex flex-col md:flex-row h-full rounded-3xl overflow-hidden">
+              {/* Left Column: Value Proposition */}
+              <div className="flex-1 p-8 md:p-12 border-b md:border-b-0 md:border-r border-[var(--border-color)] relative overflow-hidden bg-gradient-to-br from-[var(--bg-card)] to-[var(--bg-tertiary)]/30">
+                <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 md:hidden text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors z-30"><S.x /></button>
+                
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-8 bg-[var(--accent-red-bg)] text-[var(--accent-red)] border border-[rgba(239,68,68,0.2)] shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                  <S.zap /> Free Limit Reached
+                </div>
+                
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-5 text-transparent bg-clip-text bg-gradient-to-r from-[var(--text-primary)] to-[var(--text-secondary)] leading-tight">
+                  Unlock Unlimited<br/>Link Scanning
+                </h2>
+                
+                <p className="text-sm leading-relaxed mb-8 text-[var(--text-secondary)]">
+                  You've reached the maximum number of free automated scans. Upgrade to Pro to effortlessly monitor your entire portfolio and recover lost revenue.
+                </p>
+
+                <ul className="space-y-4 mb-2">
+                  {[
+                    "Unlimited URL & YouTube Scans",
+                    "Automated Background Monitoring",
+                    "Real-time Broken Link Alerts",
+                    "Advanced Revenue Recovery Analytics"
+                  ].map((feat, i) => (
+                    <li key={i} className="flex items-center gap-3.5 text-xs font-semibold text-[var(--text-secondary)] group/item">
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[var(--accent-green-bg)] text-[var(--accent-green)] border border-[rgba(16,185,129,0.2)] group-hover/item:scale-110 transition-transform duration-300">
+                        <S.check />
+                      </div>
+                      <span className="group-hover/item:text-[var(--text-primary)] transition-colors duration-300">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Right Column: Pricing & Checkout */}
+              <div className="w-full md:w-80 p-8 md:p-10 flex flex-col justify-center items-center relative" style={{ background: "var(--bg-tertiary)" }}>
+                <button onClick={() => setShowUpgradeModal(false)} className="absolute top-5 right-5 hidden md:block text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-transform hover:rotate-90 duration-300 z-30"><S.x /></button>
+
+                <div className="text-center mb-8 w-full relative z-10">
+                  <div className="inline-block text-[10px] font-extrabold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-fuchsia-500 mb-4 px-3 py-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/5">
+                    Pro Plan
+                  </div>
+                  <div className="flex flex-col items-center justify-center gap-1 mb-2">
+                    <span className="text-sm text-gray-500 line-through decoration-gray-500/50">₹2999</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-extrabold font-nums text-white tracking-tight">₹1499</span>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-gray-500 font-semibold tracking-wide uppercase">/ month</div>
+                </div>
+
+                <a 
+                  href="/pricing"
+                  className="w-full py-4 rounded-xl font-extrabold text-sm text-center text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(108,71,255,0.4)] hover:shadow-[0_0_40px_rgba(108,71,255,0.6)] relative overflow-hidden group"
+                  style={{ background: "linear-gradient(135deg, #6C47FF 0%, #9C6FFF 100%)" }}
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    Upgrade Now <S.zap />
+                  </span>
+                  {/* Button shine effect */}
+                  <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-[-20deg] group-hover:left-[200%] transition-all duration-1000 ease-out" />
+                </a>
+                
+                <div className="flex items-center justify-center gap-1.5 mt-5 text-[9px] text-gray-500 font-semibold">
+                  <S.shield /> Cancel anytime. 7-day money-back.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ─── Sidebar Desktop ─────────────────────────────────────────────────── */}
       <aside
@@ -1127,11 +1254,61 @@ export default function Dashboard() {
                 {activeTab === "scanner"  && "Scan URLs or YouTube channels for broken affiliate links."}
                 {activeTab === "history"  && "Full audit log of all previously initiated scans."}
                 {activeTab === "sites"    && "Websites configured for automated background monitoring."}
+                {activeTab === "support"  && "Get help, suggest features, or report bugs directly to our team."}
                 {activeTab === "settings" && "Account preferences and notification settings."}
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <ThemeToggle />
+                            <ThemeToggle />
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-1.5 rounded-full hover:bg-[var(--bg-hover)] relative"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <S.bell />
+                  {notifications.filter(n => !n.is_read).length > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  )}
+                </button>
+                {showNotifications && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowNotifications(false)} />
+                    <div
+                      className="absolute right-0 mt-2 w-80 rounded-2xl border shadow-xl z-20 overflow-hidden"
+                      style={{ background: "var(--bg-card-glass)", backdropFilter: "blur(20px)", borderColor: "var(--border-card)" }}
+                    >
+                      <div className="px-4 py-3 border-b text-xs font-bold" style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}>
+                        Alerts & Notifications
+                      </div>
+                      <div className="max-h-80 overflow-y-auto p-2">
+                        {notifications.length === 0 ? (
+                          <div className="text-center py-6 text-xs text-gray-500">No alerts yet.</div>
+                        ) : (
+                          notifications.map(n => (
+                            <div key={n.id} className="p-3 mb-1 rounded-xl text-xs" style={{ background: n.is_read ? "transparent" : "var(--bg-hover)" }}>
+                              <div className="font-bold mb-1">{n.title}</div>
+                              <div className="text-[11px] opacity-80 mb-2">{n.message}</div>
+                              {!n.is_read && (
+                                <button
+                                  onClick={async () => {
+                                    const token = await getToken();
+                                    await fetch(`${API}/api/users/notifications/${n.id}/read`, { method: "PUT", headers: { Authorization: `Bearer ${token}` }});
+                                    setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+                                  }}
+                                  className="text-[10px] text-blue-500 hover:underline"
+                                >
+                                  Mark as read
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -1468,8 +1645,12 @@ export default function Dashboard() {
                   className="rounded-2xl p-5 animate-scaleIn"
                   style={{ background: "var(--bg-card-glass)", backdropFilter: "blur(16px)", border: "1.5px solid var(--border-card)" }}
                 >
-                  <h3 className="font-bold text-xs uppercase tracking-wider mb-3" style={{ color: "var(--text-primary)" }}>
-                    Register New Website
+                  <h3 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: "var(--text-primary)" }}>
+                    <span>Register Target</span>
+                    <div className="flex bg-[var(--bg-tertiary)] rounded-lg p-0.5 border border-[var(--border-color)]">
+                      <button onClick={() => setSiteType("website")} className={`px-2 py-1 text-[10px] rounded-md ${siteType === "website" ? "bg-[var(--bg-card)] text-[var(--accent)] shadow-sm" : "text-[var(--text-tertiary)]"}`}>Website</button>
+                      <button onClick={() => setSiteType("youtube")} className={`px-2 py-1 text-[10px] rounded-md ${siteType === "youtube" ? "bg-[var(--bg-card)] text-[var(--accent)] shadow-sm" : "text-[var(--text-tertiary)]"}`}>YouTube</button>
+                    </div>
                   </h3>
                   <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
                     <input
@@ -1481,7 +1662,7 @@ export default function Dashboard() {
                     <input
                       value={siteUrl}
                       onChange={e => setSiteUrl(e.target.value)}
-                      placeholder="https://yoursite.com"
+                      placeholder={siteType === "website" ? "https://yoursite.com" : "@ChannelHandle"}
                       className="input-premium flex-1 text-xs"
                       onKeyDown={e => e.key === "Enter" && addSite()}
                     />
@@ -1521,7 +1702,7 @@ export default function Dashboard() {
                             border: site.is_active ? "1px solid rgba(16,185,129,0.25)" : "1px solid var(--border-card)",
                           }}
                         >
-                          {S.globe(false)}
+                          {site.site_type === "youtube" ? <S.youtube /> : S.globe(false)}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
@@ -1533,11 +1714,23 @@ export default function Dashboard() {
                             )}
                           </div>
                           <div className="text-[10px] font-mono truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>{site.url}</div>
-                          {site.last_scanned_at && (
-                            <div className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>
-                              Last scanned: {formatDate(site.last_scanned_at)}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-3 mt-1.5">
+                            {site.last_scanned_at && (
+                              <div className="text-[9px] font-medium" style={{ color: "var(--text-tertiary)" }}>
+                                Last checked: {formatDate(site.last_scanned_at)}
+                              </div>
+                            )}
+                            {site.latest_stats && (
+                              <div className="flex gap-2 text-[9px] font-bold">
+                                <span className="text-gray-500">{site.latest_stats.total_links} Links</span>
+                                {site.latest_stats.broken_count > 0 ? (
+                                  <span className="text-red-500">{site.latest_stats.broken_count} Broken</span>
+                                ) : (
+                                  <span className="text-green-500">All Good</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <button
@@ -1553,6 +1746,80 @@ export default function Dashboard() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ════ SUPPORT ════ */}
+          {activeTab === "support" && (
+            <div className="max-w-2xl space-y-4 animate-fadeIn">
+              <div
+                className="rounded-2xl p-6 md:p-8"
+                style={{ background: "var(--bg-card)", border: "1.5px solid var(--border-card)" }}
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-[var(--accent)] bg-[var(--accent-light)] shrink-0">
+                    {S.support()}
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-[var(--text-primary)]">How can we help you?</h3>
+                    <p className="text-xs mt-1 text-[var(--text-secondary)]">We read every message. Send us your feedback, report an issue, or suggest a new feature for LinkGuardian.AI.</p>
+                  </div>
+                </div>
+                
+                <form className="space-y-5" onSubmit={async e => { 
+                  e.preventDefault();
+                  const form = e.currentTarget;
+                  const fd = new FormData(form);
+                  const topic = fd.get("topic") as string;
+                  const message = fd.get("message") as string;
+                  try {
+                    const token = await getToken();
+                    const r = await fetch(`${API}/api/users/support`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                      body: JSON.stringify({ topic, message })
+                    });
+                    if (!r.ok) throw new Error("Failed");
+                    addToast("success", "Message sent successfully! Our team will get back to you soon."); 
+                    form.reset(); 
+                  } catch (err) {
+                    addToast("error", "Could not send message. Please try again later.");
+                  }
+                }}>
+                  <div>
+                    <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">What is this regarding?</label>
+                    <select name="topic" className="input-premium w-full text-sm cursor-pointer py-3">
+                      <option>General Feedback</option>
+                      <option>Bug Report</option>
+                      <option>Feature Request</option>
+                      <option>Billing Issue</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Message</label>
+                    <textarea 
+                      name="message"
+                      className="input-premium w-full text-sm min-h-[140px] resize-none py-3" 
+                      placeholder="Tell us what's on your mind... please include as much detail as possible." 
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary w-full text-sm py-4 shadow-lg">
+                    Send Message
+                  </button>
+                </form>
+              </div>
+              
+              {/* Premium Support Notice */}
+              <div className="rounded-2xl p-5 flex items-start gap-4" style={{ background: "var(--accent-purple-bg)", border: "1.5px solid rgba(139,92,246,0.2)" }}>
+                <div className="text-[var(--accent-purple)] shrink-0 mt-0.5"><S.zap /></div>
+                <div>
+                  <div className="font-bold text-sm text-[var(--accent-purple)]">Priority Customer Support</div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                    Pro and Agency users receive 24/7 priority support with guaranteed &lt; 2 hour response times.
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

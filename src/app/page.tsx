@@ -102,12 +102,17 @@ function NavBar() {
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2.5 group">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-lg transition-transform duration-300 group-hover:scale-105"
-            style={{ background: "var(--accent-gradient)", boxShadow: "0 4px 16px rgba(108,71,255,0.35)" }}
-          >
-            {Icons.shield()}
-          </div>
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-9 rounded-xl shadow-[0_4px_16px_rgba(108,71,255,0.35)] transition-transform duration-300 group-hover:scale-105">
+            <rect width="40" height="40" rx="9" fill="url(#premium-purple-grad)" />
+            <path d="M15 21a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M25 19a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <defs>
+              <linearGradient id="premium-purple-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#6C47FF" />
+                <stop offset="1" stopColor="#9C6FFF" />
+              </linearGradient>
+            </defs>
+          </svg>
           <span className="font-extrabold text-lg tracking-tight" style={{ color: "var(--text-primary)" }}>
             LinkGuardian<span style={{ color: "var(--accent)" }}>.AI</span>
           </span>

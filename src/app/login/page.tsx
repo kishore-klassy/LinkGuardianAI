@@ -14,9 +14,20 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { error: err } = await signIn(email, password);
-    if (err) { setError(err.message); setLoading(false); }
-    else { router.push("/dashboard"); }
+    const { error: err, data } = await signIn(email, password);
+    if (err) { 
+      setError(err.message === "Email not confirmed" ? "Please verify your email address before signing in." : err.message); 
+      setLoading(false); 
+    } else { 
+      try {
+        const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        await fetch(`${API}/api/users/sync`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${data.session?.access_token}` }
+        });
+      } catch(e) { console.error("Sync error", e); }
+      router.push("/dashboard"); 
+    }
   }
 
   return (
