@@ -13,9 +13,14 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Change this block in your app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://linkguardianai.vercel.app",  # Your original Vercel URL
+        "https://linkguardian.cuvisoft.in",   # Your new professional domain
+        "http://localhost:3000",              # Keep this if you test your frontend locally
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
